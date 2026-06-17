@@ -962,7 +962,7 @@
 <script>
 // ─── CONFIG & STATE ───────────────────────────────────────────────────────────
 let SUPABASE_URL = '', SUPABASE_KEY = '', TMDB_TOKEN = '';
-let supabase = null;
+let db = null;
 let currentTab = 'watching';
 let currentView = 'grid'; // 'grid' | 'list'
 let trackedShows = []; // local cache [{...supabase row, tmdb:{...}}]
@@ -996,7 +996,7 @@ async function initApp(silent = false) {
   }
 
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     await ensureTables();
     localStorage.setItem('sb_url', SUPABASE_URL);
     localStorage.setItem('sb_key', SUPABASE_KEY);
@@ -1020,7 +1020,7 @@ function showSetupError(msg) {
 
 // ─── SUPABASE TABLE SETUP ─────────────────────────────────────────────────────
 async function ensureTables() {
-  await supabase.rpc('exec_sql', { sql: `
+  await db.rpc('exec_sql', { sql: `
     CREATE TABLE IF NOT EXISTS tracked_shows (
       id BIGSERIAL PRIMARY KEY,
       tmdb_id INTEGER UNIQUE NOT NULL,
@@ -1070,7 +1070,7 @@ async function tmdbSimilar(showId) {
 
 // ─── DATA LOADING ─────────────────────────────────────────────────────────────
 async function loadAllShows() {
-  const { data, error } = await supabase.from('tracked_shows').select('*').order('created_at', { ascending: false });
+  const { data, error } = await db.from('tracked_shows').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
 
   // Fetch TMDB details for each
@@ -1151,7 +1151,7 @@ async function doSearch(query) {
 async function addShow(tmdbId, status = 'watching', btn = null) {
   if (btn) { btn.textContent = '…'; btn.disabled = true; }
   try {
-    const { error } = await supabase.from('tracked_shows').upsert({ tmdb_id: tmdbId, status });
+    const { error } = await db.from('tracked_shows').upsert({ tmdb_id: tmdbId, status });
     if (error) throw error;
     await loadAllShows();
     renderTab();
@@ -1164,7 +1164,7 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
 }
 
 async function updateShowStatus(tmdbId, status) {
-  await supabase.from('tracked_shows').update({ status }).eq('tmdb_id', tmdbId);
+  await db.from('tracked_shows').update({ status }).eq('tmdb_id', tmdbId);
   const show = trackedShows.find(s => s.tmdb_id === tmdbId);
   if (show) show.status = status;
   renderTab();
@@ -1172,8 +1172,8 @@ async function updateShowStatus(tmdbId, status) {
 }
 
 async function removeShow(tmdbId) {
-  await supabase.from('tracked_shows').delete().eq('tmdb_id', tmdbId);
-  await supabase.from('episode_progress').delete().eq('tmdb_show_id', tmdbId);
+  await db.from('tracked_shows').delete().eq('tmdb_id', tmdbId);
+  await db.from('episode_progress').delete().eq('tmdb_show_id', tmdbId);
   trackedShows = trackedShows.filter(s => s.tmdb_id !== tmdbId);
   closeDetailPanel();
   renderTab();
@@ -1574,7 +1574,7 @@ async function toggleEpisode(showId, seasonNum, epNum) {
   const existing = epProgress.find(p => p.season_number === seasonNum && p.episode_number === epNum);
   const nowWatched = existing ? !existing.watched : true;
 
-  await supabase.from('episode_progress').upsert({
+  await db.from('episode_progress').upsert({
     tmdb_show_id: showId,
     season_number: seasonNum,
     episode_number: epNum,
@@ -1600,7 +1600,7 @@ async function markSeason(showId, seasonNum, watched) {
   const eps = (seasonData.episodes || []).filter(e => e.air_date && new Date(e.air_date) <= today);
 
   for (const ep of eps) {
-    await supabase.from('episode_progress').upsert({
+    await db.from('episode_progress').upsert({
       tmdb_show_id: showId,
       season_number: seasonNum,
       episode_number: ep.episode_number,
