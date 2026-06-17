@@ -997,7 +997,6 @@ async function initApp(silent = false) {
 
   try {
     db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    await ensureTables();
     localStorage.setItem('sb_url', SUPABASE_URL);
     localStorage.setItem('sb_key', SUPABASE_KEY);
     localStorage.setItem('tmdb_key', TMDB_TOKEN);
@@ -1016,27 +1015,6 @@ function showSetupError(msg) {
   const el = document.getElementById('setup-error');
   el.textContent = msg;
   el.style.display = 'block';
-}
-
-// ─── SUPABASE TABLE SETUP ─────────────────────────────────────────────────────
-async function ensureTables() {
-  await db.rpc('exec_sql', { sql: `
-    CREATE TABLE IF NOT EXISTS tracked_shows (
-      id BIGSERIAL PRIMARY KEY,
-      tmdb_id INTEGER UNIQUE NOT NULL,
-      status TEXT DEFAULT 'watching',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS episode_progress (
-      id BIGSERIAL PRIMARY KEY,
-      tmdb_show_id INTEGER NOT NULL,
-      season_number INTEGER NOT NULL,
-      episode_number INTEGER NOT NULL,
-      watched BOOLEAN DEFAULT FALSE,
-      watched_at TIMESTAMPTZ,
-      UNIQUE(tmdb_show_id, season_number, episode_number)
-    );
-  `}).catch(() => {}); // May fail if RPC not available; tables should be created manually
 }
 
 // ─── TMDB HELPERS ─────────────────────────────────────────────────────────────
