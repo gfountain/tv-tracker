@@ -1022,7 +1022,10 @@ async function tmdbFetch(path) {
   const res = await fetch(`${TMDB_BASE}${path}`, {
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, 'Content-Type': 'application/json' }
   });
-  if (!res.ok) throw new Error(`TMDB ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`TMDB ${res.status}: ${body}`);
+  }
   return res.json();
 }
 
@@ -1031,7 +1034,7 @@ async function tmdbSearch(query) {
 }
 
 async function tmdbShowDetail(id) {
-  return tmdbFetch(`/tv/${id}?language=en-US&append_to_response=content_ratings`);
+  return tmdbFetch(`/tv/${id}?language=en-US`);
 }
 
 async function tmdbSeason(showId, seasonNum) {
@@ -1057,6 +1060,7 @@ async function loadAllShows() {
       const tmdb = await tmdbShowDetail(row.tmdb_id);
       return { ...row, tmdb };
     } catch (e) {
+      console.warn(`Failed to load TMDB data for show ${row.tmdb_id}:`, e);
       return { ...row, tmdb: null };
     }
   }));
@@ -1364,7 +1368,7 @@ async function openDetailById(tmdbId) {
   document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;display:flex;justify-content:center;"><div class="spinner"></div></div>`;
 
   try {
-    let show = trackedShows.find(s => s.tmdb_id === tmdbId);
+    let show = trackedShows.find(s => Number(s.tmdb_id) === Number(tmdbId));
     let tmdb = show?.tmdb;
     if (!tmdb) tmdb = await tmdbShowDetail(tmdbId);
 
@@ -1376,7 +1380,8 @@ async function openDetailById(tmdbId) {
 
     renderDetailPanel(tmdb, show, providers, similar, progress);
   } catch (e) {
-    document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load show details.</div>`;
+    console.error('openDetailById error:', e);
+    document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load show details: ${esc(e.message)}</div>`;
   }
 }
 
