@@ -1067,8 +1067,7 @@ async function loadAllShows() {
 }
 
 async function getEpisodeProgress(tmdbShowId) {
-  const { data } = await supabase
-    .from('episode_progress')
+  const { data } = await db.from('episode_progress')
     .select('*')
     .eq('tmdb_show_id', tmdbShowId);
   return data || [];
