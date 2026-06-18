@@ -203,6 +203,22 @@
     }
     .tab-btn:hover { color: var(--text); }
     .tab-btn.active { background: var(--amber-dim); color: var(--amber); }
+    .alert-tab-wrap { position: relative; display: inline-flex; }
+    .alert-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      display: none;
+    }
+    .alert-dot.show { display: block; animation: alertFlash 1.4s ease-in-out infinite; }
+    @keyframes alertFlash {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(224,82,82,0.6); }
+      50% { opacity: 0.6; transform: scale(1.25); box-shadow: 0 0 0 4px rgba(224,82,82,0); }
+    }
 
     /* SEARCH DROPDOWN */
     .search-dropdown {
@@ -844,6 +860,38 @@
     .alert-show-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.2rem; }
     .alert-text { font-size: 0.82rem; color: var(--text-muted); }
     .alert-date { font-size: 0.8rem; color: var(--amber); font-weight: 600; flex-shrink: 0; }
+    .alert-dismiss {
+      flex-shrink: 0;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .alert-dismiss:hover { background: var(--red); color: #fff; border-color: var(--red); }
+    .alert-row.dismissing { opacity: 0; transform: translateX(8px); transition: all 0.2s; }
+    .alerts-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .clear-section-btn {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .clear-section-btn:hover { color: var(--amber); }
 
     /* LOADING SPINNER */
     .spinner {
@@ -937,7 +985,7 @@
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
-      <button class="tab-btn" onclick="switchTab('alerts')">🔔 Alerts</button>
+      <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>
     </div>
     <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
   </div>
@@ -966,6 +1014,7 @@ let db = null;
 let currentTab = 'watching';
 let currentView = 'grid'; // 'grid' | 'list'
 let trackedShows = []; // local cache [{...supabase row, tmdb:{...}}]
+let activeAlerts = []; // local cache of undismissed alerts from the alerts table
 let activeDetailId = null;
 let searchDebounce = null;
 
@@ -1004,7 +1053,10 @@ async function initApp(silent = false) {
     document.getElementById('app').style.display = 'block';
     setupSearch();
     await loadAllShows();
+    await detectAndStoreAlerts();
+    await loadActiveAlerts();
     renderTab();
+    updateAlertBell();
   } catch (e) {
     if (!silent) showSetupError('Could not connect. Check your credentials.');
     console.error(e);
@@ -1073,6 +1125,142 @@ async function getEpisodeProgress(tmdbShowId) {
   return data || [];
 }
 
+// ─── ALERTS ENGINE ────────────────────────────────────────────────────────────
+// Compares each tracked show's current TMDB state against its last-known snapshot
+// (stored in show_snapshots) and writes new rows into the `alerts` table whenever
+// something notification-worthy changed. Snapshots are then updated to current state.
+async function detectAndStoreAlerts() {
+  const showsWithData = trackedShows.filter(s => s.tmdb && s.status !== 'completed');
+  if (!showsWithData.length) return;
+
+  const { data: snapshots } = await db.from('show_snapshots').select('*');
+  const snapMap = new Map((snapshots || []).map(s => [s.tmdb_show_id, s]));
+
+  const newAlerts = [];
+  const snapshotUpserts = [];
+  const today = new Date();
+
+  for (const show of showsWithData) {
+    const t = show.tmdb;
+    const id = t.id;
+    const prev = snapMap.get(id);
+    const nextAirDate = t.next_episode_to_air?.air_date || null;
+    const nextEpSeason = t.next_episode_to_air?.season_number ?? null;
+    const nextEpNumber = t.next_episode_to_air?.episode_number ?? null;
+
+    if (prev) {
+      // 1. New season date announced (didn't have a next air date before, now does)
+      if (!prev.next_air_date && nextAirDate) {
+        newAlerts.push({
+          tmdb_show_id: id,
+          alert_type: 'season_date_announced',
+          message: `New episode date announced: S${nextEpSeason}E${nextEpNumber} airs ${formatDate(nextAirDate)}`,
+          alert_key: `season_date:${id}:${nextEpSeason}:${nextEpNumber}:${nextAirDate}`
+        });
+      }
+
+      // 2. A new season number appeared (season count increased)
+      if (prev.number_of_seasons != null && t.number_of_seasons > prev.number_of_seasons) {
+        newAlerts.push({
+          tmdb_show_id: id,
+          alert_type: 'new_season_added',
+          message: `Season ${t.number_of_seasons} has been added`,
+          alert_key: `new_season:${id}:${t.number_of_seasons}`
+        });
+      }
+
+      // 3. Status changed (e.g. In Production -> Returning Series -> Ended/Canceled)
+      if (prev.status && prev.status !== t.status) {
+        if (t.status === 'Canceled') {
+          newAlerts.push({
+            tmdb_show_id: id, alert_type: 'cancelled',
+            message: `This show has been cancelled.`,
+            alert_key: `status:${id}:Canceled`
+          });
+        } else if (t.status === 'Ended') {
+          newAlerts.push({
+            tmdb_show_id: id, alert_type: 'ended',
+            message: `This show has ended after ${t.number_of_seasons} season${t.number_of_seasons !== 1 ? 's' : ''}.`,
+            alert_key: `status:${id}:Ended`
+          });
+        } else if (t.status === 'Returning Series' && prev.status === 'In Production') {
+          newAlerts.push({
+            tmdb_show_id: id, alert_type: 'status_changed',
+            message: `Confirmed returning for a new season`,
+            alert_key: `status:${id}:Returning`
+          });
+        } else if (t.status === 'In Production' && (prev.status === 'Returning Series' || prev.status === 'Planned')) {
+          newAlerts.push({
+            tmdb_show_id: id, alert_type: 'status_changed',
+            message: `Now in production for a new season`,
+            alert_key: `status:${id}:InProduction`
+          });
+        }
+      }
+
+    } else {
+      // First time we've ever seen this show — no alert, just seed the snapshot.
+    }
+
+    // 5. Premiere today/passed check independent of prev existing: if next_episode_to_air is ep 1 of a season and date is today
+    if (nextAirDate && nextEpNumber === 1 && nextAirDate === today.toISOString().slice(0,10)) {
+      newAlerts.push({
+        tmdb_show_id: id,
+        alert_type: 'season_premiered',
+        message: `Season ${nextEpSeason} premieres today!`,
+        alert_key: `premiere_today:${id}:${nextEpSeason}:${nextAirDate}`
+      });
+    }
+
+    snapshotUpserts.push({
+      tmdb_show_id: id,
+      status: t.status,
+      next_air_date: nextAirDate,
+      number_of_seasons: t.number_of_seasons,
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  if (newAlerts.length) {
+    // Use upsert with ignoreDuplicates-like behavior via unique alert_key constraint.
+    // onConflict prevents duplicate alerts for the same event.
+    await db.from('alerts').upsert(newAlerts, { onConflict: 'alert_key', ignoreDuplicates: true });
+  }
+  if (snapshotUpserts.length) {
+    await db.from('show_snapshots').upsert(snapshotUpserts, { onConflict: 'tmdb_show_id' });
+  }
+}
+
+async function loadActiveAlerts() {
+  const { data } = await db.from('alerts')
+    .select('*')
+    .eq('dismissed', false)
+    .order('created_at', { ascending: false });
+  activeAlerts = data || [];
+}
+
+async function dismissAlert(alertId, rowEl) {
+  if (rowEl) rowEl.classList.add('dismissing');
+  await db.from('alerts').update({ dismissed: true }).eq('id', alertId);
+  activeAlerts = activeAlerts.filter(a => a.id !== alertId);
+  updateAlertBell();
+  setTimeout(() => { if (currentTab === 'alerts') renderTab(); }, 200);
+}
+
+async function dismissAllInSection(alertIds) {
+  if (!alertIds.length) return;
+  await db.from('alerts').update({ dismissed: true }).in('id', alertIds);
+  activeAlerts = activeAlerts.filter(a => !alertIds.includes(a.id));
+  updateAlertBell();
+  renderTab();
+}
+
+function updateAlertBell() {
+  const dot = document.getElementById('alert-dot');
+  if (!dot) return;
+  dot.classList.toggle('show', activeAlerts.length > 0);
+}
+
 // ─── SEARCH ───────────────────────────────────────────────────────────────────
 function setupSearch() {
   const input = document.getElementById('search-input');
@@ -1135,6 +1323,9 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     const { error } = await db.from('tracked_shows').upsert({ tmdb_id: tmdbId, status });
     if (error) throw error;
     await loadAllShows();
+    await detectAndStoreAlerts();
+    await loadActiveAlerts();
+    updateAlertBell();
     renderTab();
     toast('Show added to your list ✓');
     if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
@@ -1155,7 +1346,11 @@ async function updateShowStatus(tmdbId, status) {
 async function removeShow(tmdbId) {
   await db.from('tracked_shows').delete().eq('tmdb_id', tmdbId);
   await db.from('episode_progress').delete().eq('tmdb_show_id', tmdbId);
+  await db.from('alerts').delete().eq('tmdb_show_id', tmdbId);
+  await db.from('show_snapshots').delete().eq('tmdb_show_id', tmdbId);
   trackedShows = trackedShows.filter(s => s.tmdb_id !== tmdbId);
+  activeAlerts = activeAlerts.filter(a => a.tmdb_show_id !== tmdbId);
+  updateAlertBell();
   closeDetailPanel();
   renderTab();
   toast('Show removed');
@@ -1284,7 +1479,20 @@ function renderAlerts(container) {
 
   container.innerHTML = `
     <div class="section-header"><span class="section-title">Alerts & Updates</span></div>
-    ${!shows.length ? `<div class="empty-state"><div class="icon">🔔</div><h3>No alerts</h3><p>Add shows to see upcoming air dates and status changes.</p></div>` : ''}`;
+    ${(!shows.length && !activeAlerts.length) ? `<div class="empty-state"><div class="icon">🔔</div><h3>No alerts</h3><p>Add shows to see upcoming air dates and status changes.</p></div>` : ''}`;
+
+  // Notification feed — dismissible, persisted events (new season dates, status changes, etc.)
+  if (activeAlerts.length) {
+    const allIds = activeAlerts.map(a => a.id);
+    container.innerHTML += `<div style="margin-bottom:1.5rem;">
+      <div class="alerts-section-head">
+        <span class="seasons-label">🔔 Notifications</span>
+        <button class="clear-section-btn" onclick="dismissAllInSection(${JSON.stringify(allIds)})">Dismiss all</button>
+      </div>
+      <div class="alerts-list">
+        ${activeAlerts.map(a => notificationRow(a)).join('')}
+      </div></div>`;
+  }
 
   if (upcoming.length) {
     container.innerHTML += `<div style="margin-bottom:1.5rem;">
@@ -1309,6 +1517,30 @@ function renderAlerts(container) {
         ${returning.map(s => alertRow(s, 'returning')).join('')}
       </div></div>`;
   }
+}
+
+function notificationRow(alert) {
+  const show = trackedShows.find(s => s.tmdb_id === alert.tmdb_show_id);
+  const t = show?.tmdb;
+  const poster = t?.poster_path ? `<img class="alert-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />` : `<div class="alert-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
+  const icon = {
+    season_date_announced: '📅',
+    new_season_added: '🆕',
+    cancelled: '🚫',
+    ended: '🏁',
+    status_changed: '🔄',
+    season_premiered: '🎬'
+  }[alert.alert_type] || '🔔';
+
+  return `
+    <div class="alert-row amber-alert" id="notif-${alert.id}" onclick="openDetailById(${alert.tmdb_show_id})">
+      ${poster}
+      <div class="alert-info">
+        <div class="alert-show-title">${icon} ${esc(t?.name || 'Unknown Show')}</div>
+        <div class="alert-text">${esc(alert.message)}</div>
+      </div>
+      <button class="alert-dismiss" onclick="event.stopPropagation();dismissAlert(${alert.id}, document.getElementById('notif-${alert.id}'))" title="Dismiss">✕</button>
+    </div>`;
 }
 
 function alertRow(show, type) {
