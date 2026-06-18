@@ -893,6 +893,112 @@
     }
     .clear-section-btn:hover { color: var(--amber); }
 
+    /* CALENDAR */
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .calendar-nav-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .calendar-nav-btn:hover { border-color: var(--amber); color: var(--amber); }
+    .calendar-month-label {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      min-width: 200px;
+    }
+    .calendar-today-btn {
+      margin-left: auto;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .calendar-weekday {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      padding-bottom: 0.5rem;
+    }
+    .calendar-cell {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 96px;
+      padding: 0.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      overflow: hidden;
+    }
+    .calendar-cell.empty { background: transparent; border-color: transparent; }
+    .calendar-cell.today { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset; }
+    .calendar-date-num {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .calendar-cell.today .calendar-date-num { color: var(--amber); }
+    .calendar-ep-chip {
+      background: var(--amber-dim);
+      border: 1px solid var(--amber-glow);
+      color: var(--amber);
+      border-radius: 5px;
+      padding: 0.15rem 0.35rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.1s;
+    }
+    .calendar-ep-chip:hover { background: var(--amber); color: #0D0D0F; }
+    .calendar-ep-chip.past { background: var(--bg3); border-color: var(--border); color: var(--text-muted); }
+    .calendar-more-chip {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      padding: 0.1rem 0.35rem;
+      cursor: pointer;
+    }
+    .calendar-more-chip:hover { color: var(--amber); }
+    .calendar-legend {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      align-items: center;
+    }
+    .calendar-legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 0.3rem;
+    }
+    @media (max-width: 640px) {
+      .calendar-cell { min-height: 64px; padding: 0.25rem; }
+      .calendar-ep-chip { font-size: 0.6rem; padding: 0.1rem 0.25rem; }
+      .calendar-month-label { font-size: 1.05rem; min-width: unset; }
+    }
+
     /* LOADING SPINNER */
     .spinner {
       display: inline-block;
@@ -985,6 +1091,7 @@
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>
     </div>
     <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
@@ -1017,6 +1124,13 @@ let trackedShows = []; // local cache [{...supabase row, tmdb:{...}}]
 let activeAlerts = []; // local cache of undismissed alerts from the alerts table
 let activeDetailId = null;
 let searchDebounce = null;
+let openSeasonIds = new Set(); // tracks which season accordions are open, survives re-renders
+let hideWatchedSeasonsMap = {}; // { [showId]: boolean } whether to hide fully-watched seasons
+let calendarMonth = new Date().getMonth();
+let calendarYear = new Date().getFullYear();
+let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
+let watchingSubView = 'all'; // 'all' | 'unwatched'
+let showProgressCache = {}; // { [showId]: { watched, total, pct } } — aggregate progress across all aired episodes
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -1053,6 +1167,7 @@ async function initApp(silent = false) {
     document.getElementById('app').style.display = 'block';
     setupSearch();
     await loadAllShows();
+    await refreshShowProgressCache();
     await detectAndStoreAlerts();
     await loadActiveAlerts();
     renderTab();
@@ -1123,6 +1238,57 @@ async function getEpisodeProgress(tmdbShowId) {
     .select('*')
     .eq('tmdb_show_id', tmdbShowId);
   return data || [];
+}
+
+// ─── AGGREGATE PROGRESS (for list views & "Unwatched" sub-tab) ────────────────
+// Computes watched/total aired-episode counts per show using a single batched
+// query against episode_progress, combined with each show's season data
+// (already cached on tmdb.seasons) to determine how many episodes have aired.
+async function refreshShowProgressCache() {
+  const showIds = trackedShows.filter(s => s.tmdb).map(s => s.tmdb_id);
+  if (!showIds.length) return;
+
+  const { data: allProgress } = await db.from('episode_progress')
+    .select('*')
+    .in('tmdb_show_id', showIds)
+    .eq('watched', true);
+
+  const watchedByShow = {};
+  (allProgress || []).forEach(p => {
+    watchedByShow[p.tmdb_show_id] = (watchedByShow[p.tmdb_show_id] || 0) + 1;
+  });
+
+  const today = new Date();
+  for (const show of trackedShows) {
+    if (!show.tmdb) continue;
+    const t = show.tmdb;
+    // Approximate "aired episodes" using last_episode_to_air's air_date cutoff
+    // combined with number_of_episodes as an upper bound. This avoids fetching
+    // every season for every show just to render list badges.
+    let total = 0;
+    if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date) <= today) {
+      total = t.last_episode_to_air.episode_number != null
+        ? estimateAiredTotal(t)
+        : (t.number_of_episodes || 0);
+    } else {
+      total = t.number_of_episodes || 0;
+    }
+    const watched = watchedByShow[t.id] || 0;
+    const pct = total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0;
+    showProgressCache[t.id] = { watched, total, pct, unwatched: Math.max(0, total - watched) };
+  }
+}
+
+// Sums episode counts of all seasons up to and including the season containing
+// the last aired episode, using TMDB's per-season episode_count field.
+function estimateAiredTotal(tmdb) {
+  const lastSeasonNum = tmdb.last_episode_to_air?.season_number;
+  const lastEpNum = tmdb.last_episode_to_air?.episode_number || 0;
+  if (lastSeasonNum == null) return tmdb.number_of_episodes || 0;
+
+  const seasons = (tmdb.seasons || []).filter(s => s.season_number > 0 && s.season_number < lastSeasonNum);
+  const priorSeasonsTotal = seasons.reduce((sum, s) => sum + (s.episode_count || 0), 0);
+  return priorSeasonsTotal + lastEpNum;
 }
 
 // ─── ALERTS ENGINE ────────────────────────────────────────────────────────────
@@ -1323,6 +1489,7 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     const { error } = await db.from('tracked_shows').upsert({ tmdb_id: tmdbId, status });
     if (error) throw error;
     await loadAllShows();
+    await refreshShowProgressCache();
     await detectAndStoreAlerts();
     await loadActiveAlerts();
     updateAlertBell();
@@ -1360,7 +1527,7 @@ async function removeShow(tmdbId) {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = ['watching','watchlist','completed','alerts'];
+    const tabs = ['watching','watchlist','completed','calendar','alerts'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   renderTab();
@@ -1370,6 +1537,8 @@ function renderTab() {
   const el = document.getElementById('main-content');
   if (currentTab === 'alerts') {
     renderAlerts(el);
+  } else if (currentTab === 'calendar') {
+    renderCalendar(el);
   } else {
     renderShowsTab(el);
   }
@@ -1377,8 +1546,13 @@ function renderTab() {
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
 function renderShowsTab(container) {
-  const filtered = trackedShows.filter(s => s.status === currentTab);
+  let filtered = trackedShows.filter(s => s.status === currentTab);
   const labels = { watching: 'Currently Watching', watchlist: 'Want to Watch', completed: 'Completed' };
+
+  const showSubTabs = currentTab === 'watching';
+  if (showSubTabs && watchingSubView === 'unwatched') {
+    filtered = filtered.filter(s => (getLocalProgress(s).unwatched || 0) > 0);
+  }
 
   container.innerHTML = `
     <div class="section-header">
@@ -1390,15 +1564,18 @@ function renderShowsTab(container) {
         <button class="view-btn ${currentView === 'grid' ? 'active' : ''}" onclick="setView('grid')" title="Grid">⊞</button>
         <button class="view-btn ${currentView === 'list' ? 'active' : ''}" onclick="setView('list')" title="List">≡</button>
       </div>
-    </div>`;
+    </div>
+    ${showSubTabs ? `
+    <div class="filters-bar">
+      <button class="filter-chip ${watchingSubView === 'all' ? 'active' : ''}" onclick="setWatchingSubView('all')">All Shows</button>
+      <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">Unwatched Episodes</button>
+    </div>` : ''}`;
 
   if (!filtered.length) {
-    container.innerHTML += `
-      <div class="empty-state">
-        <div class="icon">📺</div>
-        <h3>Nothing here yet</h3>
-        <p>Search for a show above and add it to your ${labels[currentTab].toLowerCase()} list.</p>
-      </div>`;
+    const emptyMsg = (showSubTabs && watchingSubView === 'unwatched')
+      ? `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched episodes across your watching list.</p></div>`
+      : `<div class="empty-state"><div class="icon">📺</div><h3>Nothing here yet</h3><p>Search for a show above and add it to your ${labels[currentTab].toLowerCase()} list.</p></div>`;
+    container.innerHTML += emptyMsg;
     return;
   }
 
@@ -1407,6 +1584,11 @@ function renderShowsTab(container) {
   } else {
     container.innerHTML += `<div class="shows-list">${filtered.map(showListRow).join('')}</div>`;
   }
+}
+
+function setWatchingSubView(v) {
+  watchingSubView = v;
+  renderTab();
 }
 
 function setView(v) {
@@ -1434,6 +1616,7 @@ function showCard(show) {
         <div class="show-card-meta">
           ${badge}
           <span>${t.first_air_date?.slice(0,4) || '—'}</span>
+          ${watchingSubView === 'unwatched' && progress.unwatched > 0 ? `<span style="color:var(--amber);font-weight:600;">${progress.unwatched} new</span>` : ''}
         </div>
         ${progress.total > 0 ? `
         <div class="progress-bar-wrap">
@@ -1464,9 +1647,10 @@ function showListRow(show) {
 }
 
 function getLocalProgress(show) {
-  // Quick estimate from tmdb data only (actual is loaded in detail panel)
+  const cached = showProgressCache[show.tmdb_id];
+  if (cached) return cached;
   const total = show.tmdb?.number_of_episodes || 0;
-  return { total, watched: 0, pct: 0 }; // actual filled in detail panel
+  return { total, watched: 0, pct: 0, unwatched: total };
 }
 
 // ─── ALERTS TAB ───────────────────────────────────────────────────────────────
@@ -1591,6 +1775,149 @@ function getNextAirDate(tmdb) {
   return formatDate(next.air_date);
 }
 
+// ─── CALENDAR TAB ─────────────────────────────────────────────────────────────
+async function renderCalendar(container) {
+  const monthKey = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}`;
+  const monthLabel = new Date(calendarYear, calendarMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  container.innerHTML = `
+    <div class="section-header"><span class="section-title">Episode Calendar</span></div>
+    <div class="calendar-nav">
+      <button class="calendar-nav-btn" onclick="navigateCalendar(-1)" title="Previous month">‹</button>
+      <span class="calendar-month-label">${monthLabel}</span>
+      <button class="calendar-nav-btn" onclick="navigateCalendar(1)" title="Next month">›</button>
+      <button class="btn btn-ghost calendar-today-btn" onclick="goToCurrentMonth()">Today</button>
+    </div>
+    <div id="calendar-body"><div style="display:flex;justify-content:center;padding:2rem;"><div class="spinner"></div></div></div>
+    <div class="calendar-legend">
+      <span><span class="calendar-legend-dot" style="background:var(--amber-dim);border:1px solid var(--amber-glow);"></span>Upcoming episode</span>
+      <span><span class="calendar-legend-dot" style="background:var(--bg3);border:1px solid var(--border);"></span>Aired</span>
+    </div>`;
+
+  const episodes = await getEpisodesForMonth(calendarYear, calendarMonth);
+  renderCalendarGrid(episodes);
+}
+
+async function getEpisodesForMonth(year, month) {
+  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+  if (calendarEpisodeCache[monthKey]) return calendarEpisodeCache[monthKey];
+
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+
+  const showsWithData = trackedShows.filter(s => s.tmdb);
+  const results = [];
+
+  // For each show, figure out which season(s) could have episodes in this visible month.
+  // We use first_air_date/last_air_date per season to avoid fetching irrelevant seasons.
+  await Promise.all(showsWithData.map(async show => {
+    const t = show.tmdb;
+    const seasons = (t.seasons || []).filter(s => s.season_number > 0);
+
+    for (const s of seasons) {
+      // Quick filter: skip seasons clearly outside this month using season air_date as a hint,
+      // but TMDB only gives season-level air_date (premiere date), so we still need to check
+      // seasons whose premiere is on/before month end and could plausibly still be airing,
+      // OR whose premiere falls within or after this month.
+      if (s.air_date) {
+        const seasonStart = new Date(s.air_date);
+        // If season started more than ~10 months before this visible month, it's almost
+        // certainly fully aired already and irrelevant — skip fetching it to save calls.
+        const monthsDiff = (monthStart.getFullYear() - seasonStart.getFullYear()) * 12 + (monthStart.getMonth() - seasonStart.getMonth());
+        if (monthsDiff > 10) continue;
+      }
+
+      try {
+        const seasonData = await tmdbSeason(t.id, s.season_number);
+        for (const ep of (seasonData.episodes || [])) {
+          if (!ep.air_date) continue;
+          const epDate = new Date(ep.air_date + 'T00:00:00');
+          if (epDate >= monthStart && epDate <= monthEnd) {
+            results.push({
+              date: ep.air_date,
+              showId: t.id,
+              showName: t.name,
+              poster: t.poster_path,
+              season: s.season_number,
+              episode: ep.episode_number,
+              name: ep.name
+            });
+          }
+        }
+      } catch (e) { /* skip season on error */ }
+    }
+  }));
+
+  calendarEpisodeCache[monthKey] = results;
+  return results;
+}
+
+function renderCalendarGrid(episodes) {
+  const body = document.getElementById('calendar-body');
+  if (!body) return;
+
+  const firstOfMonth = new Date(calendarYear, calendarMonth, 1);
+  const startWeekday = firstOfMonth.getDay(); // 0=Sun
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0,10);
+
+  const epsByDay = {};
+  episodes.forEach(ep => {
+    (epsByDay[ep.date] = epsByDay[ep.date] || []).push(ep);
+  });
+
+  const weekdayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = `<div class="calendar-grid">`;
+  html += weekdayLabels.map(d => `<div class="calendar-weekday">${d}</div>`).join('');
+
+  for (let i = 0; i < startWeekday; i++) {
+    html += `<div class="calendar-cell empty"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = `${calendarYear}-${String(calendarMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = dateKey === todayKey;
+    const dayEps = (epsByDay[dateKey] || []).sort((a,b) => a.showName.localeCompare(b.showName));
+    const isPast = new Date(dateKey + 'T00:00:00') < new Date(todayKey + 'T00:00:00');
+
+    const visibleEps = dayEps.slice(0, 3);
+    const extra = dayEps.length - visibleEps.length;
+
+    html += `
+      <div class="calendar-cell ${isToday ? 'today' : ''}">
+        <span class="calendar-date-num">${day}</span>
+        ${visibleEps.map(ep => `
+          <div class="calendar-ep-chip ${isPast ? 'past' : ''}" onclick="openDetailById(${ep.showId})" title="${esc(ep.showName)} S${ep.season}E${ep.episode}: ${esc(ep.name)}">
+            ${esc(ep.showName)} S${ep.season}E${ep.episode}
+          </div>`).join('')}
+        ${extra > 0 ? `<div class="calendar-more-chip">+${extra} more</div>` : ''}
+      </div>`;
+  }
+
+  const totalCells = startWeekday + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for (let i = 0; i < trailing; i++) {
+    html += `<div class="calendar-cell empty"></div>`;
+  }
+
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
+function navigateCalendar(delta) {
+  calendarMonth += delta;
+  if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+  if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+  renderCalendar(document.getElementById('main-content'));
+}
+
+function goToCurrentMonth() {
+  calendarMonth = new Date().getMonth();
+  calendarYear = new Date().getFullYear();
+  renderCalendar(document.getElementById('main-content'));
+}
+
 // ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
 async function openDetailById(tmdbId) {
   activeDetailId = tmdbId;
@@ -1702,7 +2029,9 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress) {
     ${isTracked ? `<div class="seasons-section" id="seasons-section-${tmdb.id}">
       <div class="seasons-header">
         <span class="seasons-label">📋 Seasons & Episodes</span>
-        <span style="font-size:0.78rem;color:var(--text-muted);">Click episodes to mark watched</span>
+        <button class="mark-season-btn" style="font-size:0.78rem;" onclick="toggleHideWatchedSeasons(${tmdb.id})" id="hide-watched-btn-${tmdb.id}">
+          ${hideWatchedSeasonsMap[tmdb.id] ? '👁 Show Watched Seasons' : '🙈 Hide Watched Seasons'}
+        </button>
       </div>
       <div id="seasons-accordions">
         <div style="display:flex;justify-content:center;padding:1rem;"><div class="spinner"></div></div>
@@ -1726,8 +2055,11 @@ async function loadSeasonsForDetail(tmdb, epProgress) {
 
   const seasons = (tmdb.seasons || []).filter(s => s.season_number > 0);
   const today = new Date();
+  const hideWatched = !!hideWatchedSeasonsMap[tmdb.id];
 
   let html = '';
+  let hiddenCount = 0;
+
   for (const s of seasons) {
     let seasonData;
     try {
@@ -1743,8 +2075,16 @@ async function loadSeasonsForDetail(tmdb, epProgress) {
     const isDone = total > 0 && watched >= total;
     const isPartial = watched > 0 && !isDone;
 
+    if (hideWatched && isDone) {
+      hiddenCount++;
+      continue;
+    }
+
+    const seasonKey = `${tmdb.id}-${s.season_number}`;
+    const isOpen = openSeasonIds.has(seasonKey);
+
     html += `
-      <div class="season-accordion" id="season-${tmdb.id}-${s.season_number}">
+      <div class="season-accordion ${isOpen ? 'open' : ''}" id="season-${tmdb.id}-${s.season_number}">
         <div class="season-head" onclick="toggleSeason(${tmdb.id},${s.season_number})">
           <span class="season-chevron">▶</span>
           <span class="season-name">${esc(s.name)}</span>
@@ -1764,7 +2104,7 @@ async function loadSeasonsForDetail(tmdb, epProgress) {
             const isFuture = !e.air_date || new Date(e.air_date) > today;
             const isWatched = epProgress.some(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
             return `
-              <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" onclick="${isFuture ? '' : `toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
+              <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" onclick="${isFuture ? '' : `event.stopPropagation();toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
                 <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
                 <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
                 <span class="ep-name">${esc(e.name)}</span>
@@ -1775,12 +2115,36 @@ async function loadSeasonsForDetail(tmdb, epProgress) {
       </div>`;
   }
 
-  container.innerHTML = html || '<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem;">No season data available.</div>';
+  if (!html) {
+    html = hideWatched && hiddenCount > 0
+      ? `<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem;">All ${hiddenCount} season${hiddenCount !== 1 ? 's' : ''} fully watched and hidden. Click "Show Watched Seasons" to view.</div>`
+      : '<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem;">No season data available.</div>';
+  } else if (hideWatched && hiddenCount > 0) {
+    html += `<div style="color:var(--text-muted);font-size:0.78rem;padding:0.5rem;">${hiddenCount} fully-watched season${hiddenCount !== 1 ? 's' : ''} hidden</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleHideWatchedSeasons(showId) {
+  hideWatchedSeasonsMap[showId] = !hideWatchedSeasonsMap[showId];
+  const btn = document.getElementById(`hide-watched-btn-${showId}`);
+  if (btn) btn.textContent = hideWatchedSeasonsMap[showId] ? '👁 Show Watched Seasons' : '🙈 Hide Watched Seasons';
+
+  const show = trackedShows.find(s => s.tmdb_id === showId);
+  if (show?.tmdb) {
+    getEpisodeProgress(showId).then(progress => loadSeasonsForDetail(show.tmdb, progress));
+  }
 }
 
 function toggleSeason(showId, seasonNum) {
   const el = document.getElementById(`season-${showId}-${seasonNum}`);
-  if (el) el.classList.toggle('open');
+  if (!el) return;
+  const seasonKey = `${showId}-${seasonNum}`;
+  const willOpen = !el.classList.contains('open');
+  el.classList.toggle('open');
+  if (willOpen) openSeasonIds.add(seasonKey);
+  else openSeasonIds.delete(seasonKey);
 }
 
 async function toggleEpisode(showId, seasonNum, epNum) {
@@ -1796,12 +2160,13 @@ async function toggleEpisode(showId, seasonNum, epNum) {
     watched_at: nowWatched ? new Date().toISOString() : null
   }, { onConflict: 'tmdb_show_id,season_number,episode_number' });
 
-  // Refresh detail
+  // Refresh detail — open state is preserved via openSeasonIds
   const show = trackedShows.find(s => s.tmdb_id === showId);
   if (show?.tmdb) {
-    const [newProgress] = await Promise.all([getEpisodeProgress(showId)]);
+    const newProgress = await getEpisodeProgress(showId);
     loadSeasonsForDetail(show.tmdb, newProgress);
   }
+  refreshShowProgressCache();
 }
 
 async function markSeason(showId, seasonNum, watched) {
@@ -1825,6 +2190,7 @@ async function markSeason(showId, seasonNum, watched) {
 
   const newProgress = await getEpisodeProgress(showId);
   loadSeasonsForDetail(tmdb, newProgress);
+  refreshShowProgressCache();
   toast(watched ? `Season ${seasonNum} marked as watched` : `Season ${seasonNum} unmarked`);
 }
 
