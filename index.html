@@ -336,6 +336,175 @@
     .filter-chip:hover { border-color: var(--amber); color: var(--text); }
     .filter-chip.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
 
+    /* SORT DROPDOWN */
+    .sort-select {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.35rem 0.75rem;
+      border-radius: 50px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .sort-select:hover { border-color: var(--amber); }
+    .sort-select:focus { outline: none; border-color: var(--amber); }
+
+    /* UP NEXT WIDGET */
+    .up-next-section { margin-bottom: 2rem; }
+    .up-next-scroll {
+      display: flex;
+      gap: 0.9rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      scrollbar-width: thin;
+    }
+    .up-next-card {
+      flex-shrink: 0;
+      width: 220px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+    }
+    .up-next-card:hover { transform: translateY(-3px); border-color: rgba(245,166,35,0.3); }
+    .up-next-backdrop {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      background: var(--bg4);
+      display: block;
+    }
+    .up-next-backdrop-placeholder {
+      width: 100%;
+      height: 100px;
+      background: var(--bg4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+    .up-next-body { padding: 0.75rem; }
+    .up-next-show-title {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .up-next-ep-info {
+      font-size: 0.75rem;
+      color: var(--amber);
+      font-weight: 600;
+      margin-bottom: 0.15rem;
+    }
+    .up-next-ep-name {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .up-next-empty {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding: 1rem 0;
+    }
+
+    /* STATS PAGE */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .stat-card-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.1rem;
+      color: var(--amber);
+      line-height: 1.1;
+    }
+    .stat-card-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stats-section { margin-bottom: 2rem; }
+    .stats-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.6rem;
+    }
+    .stats-bar-label {
+      font-size: 0.82rem;
+      width: 130px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stats-bar-track {
+      flex: 1;
+      height: 10px;
+      background: var(--bg3);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .stats-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--amber), #FFD37A);
+      border-radius: 5px;
+    }
+    .stats-bar-value {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      width: 50px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .stats-top-show {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.7rem 1rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .stats-top-show:hover { border-color: rgba(245,166,35,0.3); }
+    .stats-rank {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      color: var(--amber);
+      width: 28px;
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .stats-top-poster { width: 36px; height: 54px; object-fit: cover; border-radius: 4px; background: var(--bg4); flex-shrink: 0; }
+    .stats-top-info { flex: 1; min-width: 0; }
+    .stats-top-name { font-weight: 600; font-size: 0.86rem; }
+    .stats-top-meta { font-size: 0.75rem; color: var(--text-muted); }
+
     /* SHOW GRID */
     .shows-grid {
       display: grid;
@@ -1114,6 +1283,7 @@
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
+      <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>
     </div>
     <span id="user-email-display" style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;display:none;"></span>
@@ -1188,6 +1358,10 @@ let calendarYear = new Date().getFullYear();
 let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
 let watchingSubView = 'all'; // 'all' | 'unwatched'
 let showProgressCache = {}; // { [showId]: { watched, total, pct } } — aggregate progress across all aired episodes
+let sortBy = 'added';        // 'added' | 'name' | 'airdate' | 'rating'
+let genreFilter = null;      // null = all, or a genre ID (number)
+let upNextCache = [];        // [{showId, showName, poster, season, episode, name, airDate}]
+let statsCache = null;       // computed lazily when Stats tab opens, cached until data changes
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -1245,6 +1419,9 @@ async function onAuthSuccess(user) {
   await loadActiveAlerts();
   renderTab();
   updateAlertBell();
+
+  // Up Next requires per-season TMDB fetches; don't block initial render on it
+  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
 }
 
 // ─── AUTH UI ──────────────────────────────────────────────────────────────────
@@ -1458,6 +1635,72 @@ function estimateAiredTotal(tmdb) {
   return priorSeasonsTotal + lastEpNum;
 }
 
+// ─── UP NEXT WIDGET ─────────────────────────────────────────────────────────
+// For each "Watching" show with unwatched aired episodes, finds the earliest
+// unwatched episode (in air-date order) so you know exactly what to watch next.
+async function refreshUpNextCache() {
+  const watchingShows = trackedShows.filter(s => s.status === 'watching' && s.tmdb && (getLocalProgress(s).unwatched || 0) > 0);
+  const today = new Date();
+
+  const results = await Promise.all(watchingShows.map(async show => {
+    const t = show.tmdb;
+    const watchedEps = await getEpisodeProgress(t.id);
+    const watchedSet = new Set(watchedEps.filter(p => p.watched).map(p => `${p.season_number}-${p.episode_number}`));
+
+    const seasons = (t.seasons || []).filter(s => s.season_number > 0).sort((a,b) => a.season_number - b.season_number);
+
+    for (const s of seasons) {
+      let seasonData;
+      try { seasonData = await tmdbSeason(t.id, s.season_number); } catch (e) { continue; }
+      const eps = (seasonData.episodes || [])
+        .filter(e => e.air_date && new Date(e.air_date) <= today)
+        .sort((a,b) => a.episode_number - b.episode_number);
+
+      for (const ep of eps) {
+        if (!watchedSet.has(`${s.season_number}-${ep.episode_number}`)) {
+          return {
+            showId: t.id,
+            showName: t.name,
+            backdrop: t.backdrop_path,
+            poster: t.poster_path,
+            season: s.season_number,
+            episode: ep.episode_number,
+            name: ep.name,
+            airDate: ep.air_date
+          };
+        }
+      }
+    }
+    return null;
+  }));
+
+  upNextCache = results.filter(Boolean);
+}
+
+function renderUpNextWidget() {
+  if (!upNextCache.length) return '';
+
+  return `
+    <div class="up-next-section">
+      <div class="section-header" style="margin-bottom:0.85rem;">
+        <span class="section-title" style="font-size:1.15rem;">▶ Up Next</span>
+      </div>
+      <div class="up-next-scroll">
+        ${upNextCache.map(item => `
+          <div class="up-next-card" onclick="openDetailById(${item.showId})">
+            ${item.backdrop
+              ? `<img class="up-next-backdrop" src="${TMDB_IMG}/w300${item.backdrop}" alt="" />`
+              : `<div class="up-next-backdrop-placeholder">🎬</div>`}
+            <div class="up-next-body">
+              <div class="up-next-show-title">${esc(item.showName)}</div>
+              <div class="up-next-ep-info">S${item.season}E${item.episode}</div>
+              <div class="up-next-ep-name">${esc(item.name)}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
 // ─── ALERTS ENGINE ────────────────────────────────────────────────────────────
 // Compares each tracked show's current TMDB state against its last-known snapshot
 // (stored in show_snapshots) and writes new rows into the `alerts` table whenever
@@ -1666,6 +1909,7 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     renderTab();
     toast('Show added to your list ✓');
     if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
+    refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
   } catch (e) {
     toast('Failed to add show', true);
     if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
@@ -1678,6 +1922,7 @@ async function updateShowStatus(tmdbId, status) {
   if (show) show.status = status;
   renderTab();
   toast(`Moved to ${statusLabel(status)}`);
+  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
 }
 
 async function removeShow(tmdbId) {
@@ -1688,6 +1933,7 @@ async function removeShow(tmdbId) {
   await db.from('show_snapshots').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
   trackedShows = trackedShows.filter(s => s.tmdb_id !== tmdbId);
   activeAlerts = activeAlerts.filter(a => a.tmdb_show_id !== tmdbId);
+  upNextCache = upNextCache.filter(u => u.showId !== tmdbId);
   updateAlertBell();
   closeDetailPanel();
   renderTab();
@@ -1698,7 +1944,7 @@ async function removeShow(tmdbId) {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = ['watching','watchlist','completed','calendar','alerts'];
+    const tabs = ['watching','watchlist','completed','calendar','stats','alerts'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   renderTab();
@@ -1710,6 +1956,8 @@ function renderTab() {
     renderAlerts(el);
   } else if (currentTab === 'calendar') {
     renderCalendar(el);
+  } else if (currentTab === 'stats') {
+    renderStats(el);
   } else {
     renderShowsTab(el);
   }
@@ -1725,26 +1973,58 @@ function renderShowsTab(container) {
     filtered = filtered.filter(s => (getLocalProgress(s).unwatched || 0) > 0);
   }
 
-  container.innerHTML = `
+  // Genre filter — built from genres actually present across this tab's shows
+  const availableGenres = getAvailableGenres(trackedShows.filter(s => s.status === currentTab));
+  if (genreFilter != null) {
+    filtered = filtered.filter(s => (s.tmdb?.genres || []).some(g => g.id === genreFilter));
+  }
+
+  filtered = sortShows(filtered, sortBy);
+
+  let html = '';
+
+  // Up Next widget — only on the Watching tab, shows the next unwatched episode per show
+  if (currentTab === 'watching') {
+    html += renderUpNextWidget();
+  }
+
+  html += `
     <div class="section-header">
       <div style="display:flex;align-items:center;gap:0.5rem;">
         <span class="section-title">${labels[currentTab]}</span>
         <span class="section-count">${filtered.length}</span>
       </div>
-      <div class="view-toggle">
-        <button class="view-btn ${currentView === 'grid' ? 'active' : ''}" onclick="setView('grid')" title="Grid">⊞</button>
-        <button class="view-btn ${currentView === 'list' ? 'active' : ''}" onclick="setView('list')" title="List">≡</button>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <select class="sort-select" onchange="setSortBy(this.value)">
+          <option value="added" ${sortBy === 'added' ? 'selected' : ''}>Recently Added</option>
+          <option value="name" ${sortBy === 'name' ? 'selected' : ''}>Name (A–Z)</option>
+          <option value="airdate" ${sortBy === 'airdate' ? 'selected' : ''}>Next Air Date</option>
+          <option value="rating" ${sortBy === 'rating' ? 'selected' : ''}>Rating</option>
+        </select>
+        <div class="view-toggle">
+          <button class="view-btn ${currentView === 'grid' ? 'active' : ''}" onclick="setView('grid')" title="Grid">⊞</button>
+          <button class="view-btn ${currentView === 'list' ? 'active' : ''}" onclick="setView('list')" title="List">≡</button>
+        </div>
       </div>
     </div>
-    ${showSubTabs ? `
     <div class="filters-bar">
-      <button class="filter-chip ${watchingSubView === 'all' ? 'active' : ''}" onclick="setWatchingSubView('all')">All Shows</button>
-      <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">Unwatched Episodes</button>
-    </div>` : ''}`;
+      ${showSubTabs ? `
+        <button class="filter-chip ${watchingSubView === 'all' ? 'active' : ''}" onclick="setWatchingSubView('all')">All Shows</button>
+        <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">Unwatched Episodes</button>
+      ` : ''}
+      ${availableGenres.length ? `
+        <button class="filter-chip ${genreFilter == null ? 'active' : ''}" onclick="setGenreFilter(null)">All Genres</button>
+        ${availableGenres.map(g => `<button class="filter-chip ${genreFilter === g.id ? 'active' : ''}" onclick="setGenreFilter(${g.id})">${esc(g.name)}</button>`).join('')}
+      ` : ''}
+    </div>`;
+
+  container.innerHTML = html;
 
   if (!filtered.length) {
     const emptyMsg = (showSubTabs && watchingSubView === 'unwatched')
       ? `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched episodes across your watching list.</p></div>`
+      : genreFilter != null
+      ? `<div class="empty-state"><div class="icon">🔍</div><h3>No matches</h3><p>No shows in this list match that genre filter.</p></div>`
       : `<div class="empty-state"><div class="icon">📺</div><h3>Nothing here yet</h3><p>Search for a show above and add it to your ${labels[currentTab].toLowerCase()} list.</p></div>`;
     container.innerHTML += emptyMsg;
     return;
@@ -1760,6 +2040,46 @@ function renderShowsTab(container) {
 function setWatchingSubView(v) {
   watchingSubView = v;
   renderTab();
+}
+
+function setSortBy(v) {
+  sortBy = v;
+  renderTab();
+}
+
+function setGenreFilter(genreId) {
+  genreFilter = genreId;
+  renderTab();
+}
+
+function getAvailableGenres(shows) {
+  const map = new Map();
+  shows.forEach(s => (s.tmdb?.genres || []).forEach(g => map.set(g.id, g.name)));
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a,b) => a.name.localeCompare(b.name));
+}
+
+function sortShows(shows, mode) {
+  const arr = [...shows];
+  switch (mode) {
+    case 'name':
+      return arr.sort((a,b) => (a.tmdb?.name || '').localeCompare(b.tmdb?.name || ''));
+    case 'airdate': {
+      // Shows with an upcoming episode sort first (soonest first); shows with no upcoming date sort last.
+      return arr.sort((a,b) => {
+        const da = a.tmdb?.next_episode_to_air?.air_date;
+        const db_ = b.tmdb?.next_episode_to_air?.air_date;
+        if (da && db_) return new Date(da) - new Date(db_);
+        if (da) return -1;
+        if (db_) return 1;
+        return (a.tmdb?.name || '').localeCompare(b.tmdb?.name || '');
+      });
+    }
+    case 'rating':
+      return arr.sort((a,b) => (b.tmdb?.vote_average || 0) - (a.tmdb?.vote_average || 0));
+    case 'added':
+    default:
+      return arr.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  }
 }
 
 function setView(v) {
@@ -2089,6 +2409,164 @@ function goToCurrentMonth() {
   renderCalendar(document.getElementById('main-content'));
 }
 
+// ─── STATS TAB ────────────────────────────────────────────────────────────────
+async function renderStats(container) {
+  container.innerHTML = `
+    <div class="section-header"><span class="section-title">Your Watch Stats</span></div>
+    <div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>`;
+
+  const stats = await computeStats();
+  statsCache = stats;
+  renderStatsContent(container, stats);
+}
+
+async function computeStats() {
+  const showIds = trackedShows.filter(s => s.tmdb).map(s => s.tmdb_id);
+
+  const { data: allWatched } = showIds.length
+    ? await db.from('episode_progress').select('*').in('tmdb_show_id', showIds).eq('watched', true)
+    : { data: [] };
+
+  const watchedByShow = {};
+  (allWatched || []).forEach(p => {
+    (watchedByShow[p.tmdb_show_id] = watchedByShow[p.tmdb_show_id] || []).push(p);
+  });
+
+  let totalEpisodesWatched = 0;
+  let totalMinutesWatched = 0;
+  const genreCounts = {};
+  const showsWithEpisodeCounts = [];
+  let ratingSum = 0, ratingCount = 0;
+  let longestShow = null;
+
+  for (const show of trackedShows) {
+    if (!show.tmdb) continue;
+    const t = show.tmdb;
+    const watchedEps = watchedByShow[t.id] || [];
+    const epCount = watchedEps.length;
+    totalEpisodesWatched += epCount;
+
+    // Runtime: TMDB gives episode_run_time as an array (sometimes per-season variation); average it.
+    const avgRuntime = (t.episode_run_time && t.episode_run_time.length)
+      ? t.episode_run_time.reduce((a,b) => a+b, 0) / t.episode_run_time.length
+      : 45; // reasonable fallback for shows missing runtime data
+    totalMinutesWatched += epCount * avgRuntime;
+
+    (t.genres || []).forEach(g => {
+      genreCounts[g.name] = (genreCounts[g.name] || 0) + epCount;
+    });
+
+    if (t.vote_average) { ratingSum += t.vote_average; ratingCount++; }
+
+    if (epCount > 0) showsWithEpisodeCounts.push({ id: t.id, name: t.name, poster: t.poster_path, count: epCount });
+
+    if (t.number_of_episodes && (!longestShow || t.number_of_episodes > longestShow.episodes)) {
+      longestShow = { name: t.name, episodes: t.number_of_episodes, seasons: t.number_of_seasons };
+    }
+  }
+
+  const statusCounts = { watching: 0, watchlist: 0, completed: 0 };
+  trackedShows.forEach(s => { if (statusCounts[s.status] != null) statusCounts[s.status]++; });
+
+  const topGenres = Object.entries(genreCounts)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, count]) => ({ name, count }));
+  const maxGenreCount = topGenres[0]?.count || 1;
+
+  const topShows = showsWithEpisodeCounts.sort((a,b) => b.count - a.count).slice(0, 5);
+
+  return {
+    totalShowsTracked: trackedShows.length,
+    totalEpisodesWatched,
+    totalHoursWatched: Math.round(totalMinutesWatched / 60),
+    totalDaysWatched: (totalMinutesWatched / 60 / 24),
+    avgRating: ratingCount ? (ratingSum / ratingCount) : null,
+    statusCounts,
+    topGenres,
+    maxGenreCount,
+    topShows,
+    longestShow
+  };
+}
+
+function renderStatsContent(container, s) {
+  const days = s.totalDaysWatched;
+  const daysDisplay = days >= 1 ? `${days.toFixed(1)} days` : `${s.totalHoursWatched} hrs`;
+
+  container.innerHTML = `
+    <div class="section-header"><span class="section-title">Your Watch Stats</span></div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-value">${s.totalShowsTracked}</div>
+        <div class="stat-card-label">Shows Tracked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${s.totalEpisodesWatched.toLocaleString()}</div>
+        <div class="stat-card-label">Episodes Watched</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${s.totalHoursWatched.toLocaleString()}</div>
+        <div class="stat-card-label">Hours Watched</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${daysDisplay.split(' ')[0]}</div>
+        <div class="stat-card-label">${days >= 1 ? 'Days (24hr)' : 'Hours'} Watched</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${s.avgRating ? s.avgRating.toFixed(1) : '—'}</div>
+        <div class="stat-card-label">Avg. Show Rating</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${s.statusCounts.completed}</div>
+        <div class="stat-card-label">Shows Completed</div>
+      </div>
+    </div>
+
+    ${s.topGenres.length ? `
+    <div class="stats-section">
+      <div class="seasons-label" style="margin-bottom:0.9rem;">🎭 Genres by Episodes Watched</div>
+      ${s.topGenres.map(g => `
+        <div class="stats-bar-row">
+          <div class="stats-bar-label">${esc(g.name)}</div>
+          <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${Math.round((g.count / s.maxGenreCount) * 100)}%"></div></div>
+          <div class="stats-bar-value">${g.count} ep</div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${s.topShows.length ? `
+    <div class="stats-section">
+      <div class="seasons-label" style="margin-bottom:0.9rem;">🏆 Most-Watched Shows</div>
+      ${s.topShows.map((show, i) => `
+        <div class="stats-top-show" onclick="openDetailById(${show.id})">
+          <div class="stats-rank">${i + 1}</div>
+          ${show.poster
+            ? `<img class="stats-top-poster" src="${TMDB_IMG}/w92${show.poster}" alt="" />`
+            : `<div class="stats-top-poster" style="display:flex;align-items:center;justify-content:center;font-size:1rem;">📺</div>`}
+          <div class="stats-top-info">
+            <div class="stats-top-name">${esc(show.name)}</div>
+            <div class="stats-top-meta">${show.count} episode${show.count !== 1 ? 's' : ''} watched</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${s.longestShow ? `
+    <div class="stats-section">
+      <div class="seasons-label" style="margin-bottom:0.9rem;">📏 Biggest Commitment</div>
+      <div class="stats-top-show" style="cursor:default;">
+        <div class="stats-rank">🎯</div>
+        <div class="stats-top-info">
+          <div class="stats-top-name">${esc(s.longestShow.name)}</div>
+          <div class="stats-top-meta">${s.longestShow.episodes} episodes across ${s.longestShow.seasons} season${s.longestShow.seasons !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${!s.totalShowsTracked ? `<div class="empty-state"><div class="icon">📊</div><h3>No stats yet</h3><p>Add some shows and start checking off episodes to see your stats here.</p></div>` : ''}
+  `;
+}
+
 // ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
 async function openDetailById(tmdbId) {
   activeDetailId = tmdbId;
@@ -2339,6 +2817,7 @@ async function toggleEpisode(showId, seasonNum, epNum) {
     loadSeasonsForDetail(show.tmdb, newProgress);
   }
   refreshShowProgressCache();
+  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
 }
 
 async function markSeason(showId, seasonNum, watched) {
@@ -2364,6 +2843,7 @@ async function markSeason(showId, seasonNum, watched) {
   const newProgress = await getEpisodeProgress(showId);
   loadSeasonsForDetail(tmdb, newProgress);
   refreshShowProgressCache();
+  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
   toast(watched ? `Season ${seasonNum} marked as watched` : `Season ${seasonNum} unmarked`);
 }
 
