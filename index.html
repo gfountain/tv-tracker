@@ -2749,7 +2749,7 @@ function showListRow(show) {
   }
 
   const expandBody = isExpanded ? `
-    <div class="list-row-expand-body" id="list-expand-${showId}">
+    <div class="list-row-expand-body" id="list-expand-${showId}" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
         <span class="seasons-label">Episodes</span>
         <button class="mark-season-btn" style="font-size:0.75rem;" onclick="event.stopPropagation();toggleHideWatchedSeasons(${showId})" id="hide-watched-btn-${showId}">
@@ -3840,7 +3840,7 @@ async function loadSeasonsForDetail(tmdb, epProgress, containerId = 'seasons-acc
 
     html += `
       <div class="season-accordion ${isOpen ? 'open' : ''}" id="season-${tmdb.id}-${s.season_number}">
-        <div class="season-head" onclick="toggleSeason(${tmdb.id},${s.season_number})">
+        <div class="season-head" onclick="event.stopPropagation();toggleSeason(${tmdb.id},${s.season_number})">
           <span class="season-chevron">▶</span>
           <span class="season-name">${esc(s.name)}</span>
           <span class="season-progress-text">${watched}/${total}</span>
