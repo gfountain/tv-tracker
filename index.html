@@ -224,7 +224,10 @@
     .search-dropdown {
       position: absolute;
       top: calc(100% + 8px);
-      left: 0; right: 0;
+      left: 0;
+      min-width: 420px;
+      width: max-content;
+      max-width: min(560px, 90vw);
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
