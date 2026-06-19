@@ -1180,6 +1180,148 @@
       .calendar-month-label { font-size: 1.05rem; min-width: unset; }
     }
 
+    /* TRAILER EMBED */
+    .trailer-wrap {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; /* 16:9 */
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #000;
+      margin-bottom: 1.5rem;
+    }
+    .trailer-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .trailer-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg3);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      gap: 0.5rem;
+    }
+    .trailer-placeholder .icon { font-size: 2rem; }
+
+    /* CAST & CREW */
+    .cast-scroll {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      scrollbar-width: thin;
+      margin-bottom: 1.5rem;
+    }
+    .cast-card {
+      flex-shrink: 0;
+      width: 80px;
+      text-align: center;
+    }
+    .cast-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--bg4);
+      display: block;
+      margin: 0 auto 0.4rem;
+    }
+    .cast-photo-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--bg4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 0.4rem;
+    }
+    .cast-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text);
+    }
+    .cast-character {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+      line-height: 1.2;
+    }
+    .crew-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .crew-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 0.3rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    .crew-chip strong { color: var(--text); }
+    .crew-chip span { color: var(--text-muted); }
+
+    /* ACTIVITY FEED */
+    .feed-list { display: flex; flex-direction: column; gap: 0; }
+    .feed-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.9rem 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-item:hover { background: var(--bg2); margin: 0 -1rem; padding-left: 1rem; padding-right: 1rem; border-radius: var(--radius); }
+    .feed-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .feed-poster {
+      width: 36px;
+      height: 54px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--bg4);
+      flex-shrink: 0;
+    }
+    .feed-content { flex: 1; min-width: 0; }
+    .feed-text { font-size: 0.86rem; line-height: 1.4; }
+    .feed-text strong { color: var(--amber); }
+    .feed-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .feed-empty { text-align: center; padding: 3rem; color: var(--text-muted); }
+    .feed-load-more {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-top: 1px solid var(--border);
+    }
+    .feed-load-more:hover { color: var(--amber); }
+
     /* LOADING SPINNER */
     .spinner {
       display: inline-block;
@@ -1282,6 +1424,7 @@
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
       <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>
@@ -1356,12 +1499,15 @@ let hideWatchedSeasonsMap = {}; // { [showId]: boolean } whether to hide fully-w
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
-let watchingSubView = 'all'; // 'all' | 'unwatched'
+let watchingSubView = 'unwatched'; // 'all' | 'unwatched'
 let showProgressCache = {}; // { [showId]: { watched, total, pct } } — aggregate progress across all aired episodes
 let sortBy = 'added';        // 'added' | 'name' | 'airdate' | 'rating'
 let genreFilter = null;      // null = all, or a genre ID (number)
 let upNextCache = [];        // [{showId, showName, poster, season, episode, name, airDate}]
 let statsCache = null;       // computed lazily when Stats tab opens, cached until data changes
+let feedItems = [];          // activity log cache
+let feedOffset = 0;          // pagination offset for feed
+const FEED_PAGE_SIZE = 30;
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -1558,6 +1704,14 @@ async function tmdbProviders(showId) {
 
 async function tmdbSimilar(showId) {
   return tmdbFetch(`/tv/${showId}/similar?language=en-US&page=1`);
+}
+
+async function tmdbVideos(showId) {
+  return tmdbFetch(`/tv/${showId}/videos?language=en-US`);
+}
+
+async function tmdbCredits(showId) {
+  return tmdbFetch(`/tv/${showId}/aggregate_credits?language=en-US`);
 }
 
 // ─── DATA LOADING ─────────────────────────────────────────────────────────────
@@ -1839,6 +1993,29 @@ function updateAlertBell() {
   dot.classList.toggle('show', activeAlerts.length > 0);
 }
 
+// ─── ACTIVITY LOG ─────────────────────────────────────────────────────────────
+async function logActivity(type, tmdbId, extra = {}) {
+  if (!currentUser) return;
+  const show = trackedShows.find(s => s.tmdb_id === tmdbId);
+  const showName = show?.tmdb?.name || extra.showName || null;
+  try {
+    await db.from('activity_log').insert({
+      user_id: currentUser.id,
+      activity_type: type,
+      tmdb_show_id: tmdbId,
+      show_name: showName,
+      season_number: extra.season ?? null,
+      episode_number: extra.episode ?? null,
+      episode_name: extra.episodeName ?? null,
+      meta: extra.meta ?? null
+    });
+    // Bust the feed cache so it reloads next time the Feed tab is opened
+    feedItems = [];
+  } catch (e) {
+    console.warn('Activity log write failed:', e);
+  }
+}
+
 // ─── SEARCH ───────────────────────────────────────────────────────────────────
 function setupSearch() {
   const input = document.getElementById('search-input');
@@ -1909,6 +2086,7 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     renderTab();
     toast('Show added to your list ✓');
     if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
+    logActivity('show_added', tmdbId);
     refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
   } catch (e) {
     toast('Failed to add show', true);
@@ -1917,20 +2095,29 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
 }
 
 async function updateShowStatus(tmdbId, status) {
-  await db.from('tracked_shows').update({ status }).eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
   const show = trackedShows.find(s => s.tmdb_id === tmdbId);
+  const oldStatus = show?.status;
+  await db.from('tracked_shows').update({ status }).eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
   if (show) show.status = status;
   renderTab();
   toast(`Moved to ${statusLabel(status)}`);
+  logActivity(
+    status === 'completed' ? 'show_completed' : 'status_changed',
+    tmdbId,
+    { meta: { old_status: oldStatus, new_status: status } }
+  );
   refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
 }
 
 async function removeShow(tmdbId) {
   const uid = currentUser.id;
+  const show = trackedShows.find(s => s.tmdb_id === tmdbId);
+  const showName = show?.tmdb?.name;
   await db.from('tracked_shows').delete().eq('tmdb_id', tmdbId).eq('user_id', uid);
   await db.from('episode_progress').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
   await db.from('alerts').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
   await db.from('show_snapshots').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
+  logActivity('show_removed', tmdbId, { showName });
   trackedShows = trackedShows.filter(s => s.tmdb_id !== tmdbId);
   activeAlerts = activeAlerts.filter(a => a.tmdb_show_id !== tmdbId);
   upNextCache = upNextCache.filter(u => u.showId !== tmdbId);
@@ -1944,7 +2131,7 @@ async function removeShow(tmdbId) {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = ['watching','watchlist','completed','calendar','stats','alerts'];
+    const tabs = ['watching','watchlist','completed','feed','calendar','stats','alerts'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   renderTab();
@@ -1958,6 +2145,8 @@ function renderTab() {
     renderCalendar(el);
   } else if (currentTab === 'stats') {
     renderStats(el);
+  } else if (currentTab === 'feed') {
+    renderFeed(el);
   } else {
     renderShowsTab(el);
   }
@@ -2409,6 +2598,111 @@ function goToCurrentMonth() {
   renderCalendar(document.getElementById('main-content'));
 }
 
+// ─── ACTIVITY FEED TAB ────────────────────────────────────────────────────────
+async function renderFeed(container) {
+  container.innerHTML = `
+    <div class="section-header"><span class="section-title">Activity Feed</span></div>
+    <div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>`;
+
+  if (!feedItems.length) {
+    const { data, error } = await db.from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(FEED_PAGE_SIZE);
+    feedItems = data || [];
+    feedOffset = feedItems.length;
+  }
+
+  renderFeedContent(container);
+}
+
+function renderFeedContent(container) {
+  const typeConfig = {
+    show_added:      { icon: '➕', color: 'var(--green)' },
+    show_removed:    { icon: '🗑️', color: 'var(--text-muted)' },
+    status_changed:  { icon: '🔄', color: 'var(--blue)' },
+    episode_watched: { icon: '✓',  color: 'var(--amber)' },
+    season_watched:  { icon: '🏆', color: 'var(--amber)' },
+    show_completed:  { icon: '🎉', color: 'var(--green)' },
+  };
+
+  function feedText(item) {
+    const name = item.show_name ? `<strong>${esc(item.show_name)}</strong>` : 'a show';
+    switch (item.activity_type) {
+      case 'show_added':      return `Added ${name} to your list`;
+      case 'show_removed':    return `Removed ${name}`;
+      case 'show_completed':  return `Completed ${name} 🎉`;
+      case 'status_changed': {
+        const from = item.meta?.old_status ? statusLabel(item.meta.old_status) : '—';
+        const to   = item.meta?.new_status ? statusLabel(item.meta.new_status) : '—';
+        return `Moved ${name} from ${from} to ${to}`;
+      }
+      case 'episode_watched':
+        return `Watched ${name} S${item.season_number}E${item.episode_number}${item.episode_name ? ` — ${esc(item.episode_name)}` : ''}`;
+      case 'season_watched':
+        return `Finished Season ${item.season_number} of ${name}`;
+      default: return `Activity on ${name}`;
+    }
+  }
+
+  if (!feedItems.length) {
+    container.innerHTML = `
+      <div class="section-header"><span class="section-title">Activity Feed</span></div>
+      <div class="feed-empty">
+        <div style="font-size:2.5rem;margin-bottom:0.75rem;">📋</div>
+        <div>No activity yet. Start adding shows and tracking episodes!</div>
+      </div>`;
+    return;
+  }
+
+  const show = trackedShows;
+  const rows = feedItems.map(item => {
+    const cfg = typeConfig[item.activity_type] || { icon: '•', color: 'var(--text-muted)' };
+    const trackedShow = show.find(s => s.tmdb_id === item.tmdb_show_id);
+    const poster = trackedShow?.tmdb?.poster_path
+      ? `<img class="feed-poster" src="${TMDB_IMG}/w92${trackedShow.tmdb.poster_path}" alt="" />`
+      : `<div class="feed-icon" style="background:${cfg.color}20;border-color:${cfg.color}40;color:${cfg.color};">${cfg.icon}</div>`;
+
+    return `<div class="feed-item" onclick="openDetailById(${item.tmdb_show_id})">
+      ${poster}
+      <div class="feed-content">
+        <div class="feed-text">${feedText(item)}</div>
+        <div class="feed-time">${timeAgo(item.created_at)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="section-header">
+      <span class="section-title">Activity Feed</span>
+      <span class="section-count">${feedItems.length}</span>
+    </div>
+    <div class="feed-list">${rows}</div>
+    <div class="feed-load-more" onclick="loadMoreFeed()">Load more</div>`;
+}
+
+async function loadMoreFeed() {
+  const { data } = await db.from('activity_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(feedOffset, feedOffset + FEED_PAGE_SIZE - 1);
+  const newItems = data || [];
+  feedItems = [...feedItems, ...newItems];
+  feedOffset += newItems.length;
+  renderFeedContent(document.getElementById('main-content'));
+}
+
+function timeAgo(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // ─── STATS TAB ────────────────────────────────────────────────────────────────
 async function renderStats(container) {
   container.innerHTML = `
@@ -2579,20 +2873,22 @@ async function openDetailById(tmdbId) {
     let tmdb = show?.tmdb;
     if (!tmdb) tmdb = await tmdbShowDetail(tmdbId);
 
-    const [providers, similar, progress] = await Promise.all([
+    const [providers, similar, progress, videos, credits] = await Promise.all([
       tmdbProviders(tmdbId).catch(() => ({})),
       tmdbSimilar(tmdbId).catch(() => ({ results: [] })),
-      show ? getEpisodeProgress(tmdbId) : Promise.resolve([])
+      show ? getEpisodeProgress(tmdbId) : Promise.resolve([]),
+      tmdbVideos(tmdbId).catch(() => ({ results: [] })),
+      tmdbCredits(tmdbId).catch(() => ({ cast: [], crew: [] }))
     ]);
 
-    renderDetailPanel(tmdb, show, providers, similar, progress);
+    renderDetailPanel(tmdb, show, providers, similar, progress, videos, credits);
   } catch (e) {
     console.error('openDetailById error:', e);
     document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load show details: ${esc(e.message)}</div>`;
   }
 }
 
-function renderDetailPanel(tmdb, show, providers, similar, epProgress) {
+function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, credits) {
   // Backdrop
   const bd = document.getElementById('detail-backdrop');
   if (tmdb.backdrop_path) {
@@ -2641,6 +2937,62 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress) {
     return `<div class="suggestion-card" onclick="openDetailById(${s.id})">${img}<div class="suggestion-title">${esc(s.name)}</div></div>`;
   }).join('');
 
+  // Trailer — pick the first official trailer, then any trailer, then any video
+  const allVideos = videos?.results || [];
+  const trailer = allVideos.find(v => v.site === 'YouTube' && v.type === 'Trailer' && v.official)
+    || allVideos.find(v => v.site === 'YouTube' && v.type === 'Trailer')
+    || allVideos.find(v => v.site === 'YouTube');
+  const trailerHtml = trailer
+    ? `<div class="trailer-wrap">
+        <iframe src="https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen title="${esc(trailer.name)}"></iframe>
+       </div>`
+    : `<div class="trailer-wrap" style="padding-top:0;height:80px;">
+        <div class="trailer-placeholder"><div class="icon">🎞️</div><span>No trailer available</span></div>
+       </div>`;
+
+  // Cast — top 12 from aggregate_credits (which consolidates recurring cast)
+  const castList = (credits?.cast || []).slice(0, 12);
+  const castHtml = castList.length ? `
+    <div style="margin-bottom:1.5rem;">
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🎭 Cast</div>
+      <div class="cast-scroll">
+        ${castList.map(c => {
+          const photo = c.profile_path
+            ? `<img class="cast-photo" src="${TMDB_IMG}/w185${c.profile_path}" alt="${esc(c.name)}" loading="lazy" />`
+            : `<div class="cast-photo-placeholder">👤</div>`;
+          const character = c.roles?.[0]?.character || c.character || '';
+          return `<div class="cast-card">
+            ${photo}
+            <div class="cast-name">${esc(c.name)}</div>
+            ${character ? `<div class="cast-character">${esc(character)}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // Crew — creators and key roles
+  const createdBy = (tmdb.created_by || []);
+  const keyCrewRoles = ['Executive Producer','Showrunner','Creator','Director','Writer'];
+  const crewList = (credits?.crew || [])
+    .filter(c => keyCrewRoles.includes(c.jobs?.[0]?.job || c.job))
+    .slice(0, 8);
+  const allCrew = [
+    ...createdBy.map(c => ({ name: c.name, role: 'Creator' })),
+    ...crewList.map(c => ({ name: c.name, role: c.jobs?.[0]?.job || c.job }))
+  ];
+  // Deduplicate by name
+  const seenCrew = new Set();
+  const dedupedCrew = allCrew.filter(c => { if (seenCrew.has(c.name)) return false; seenCrew.add(c.name); return true; });
+  const crewHtml = dedupedCrew.length ? `
+    <div style="margin-bottom:1.5rem;">
+      <div class="seasons-label" style="margin-bottom:0.6rem;">🎬 Crew</div>
+      <div class="crew-row">
+        ${dedupedCrew.map(c => `<div class="crew-chip"><strong>${esc(c.name)}</strong> <span>· ${esc(c.role)}</span></div>`).join('')}
+      </div>
+    </div>` : '';
+
   document.getElementById('detail-body').innerHTML = `
     <div class="detail-header">
       ${tmdb.poster_path
@@ -2671,9 +3023,17 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress) {
     <p class="detail-overview">${esc(tmdb.overview || 'No overview available.')}</p>
 
     <div style="margin-bottom:1.25rem;">
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🎞️ Trailer</div>
+      ${trailerHtml}
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
       <div class="seasons-label" style="margin-bottom:0.75rem;">📺 Where to Watch</div>
       <div class="streaming-row">${streamingHtml}</div>
     </div>
+
+    ${castHtml}
+    ${crewHtml}
 
     ${isTracked ? `<div class="seasons-section" id="seasons-section-${tmdb.id}">
       <div class="seasons-header">
@@ -2817,6 +3177,11 @@ async function toggleEpisode(showId, seasonNum, epNum) {
     loadSeasonsForDetail(show.tmdb, newProgress);
   }
   refreshShowProgressCache();
+  if (nowWatched) {
+    // Try to get episode name from already-loaded season data
+    const show = trackedShows.find(s => s.tmdb_id === showId);
+    logActivity('episode_watched', showId, { season: seasonNum, episode: epNum });
+  }
   refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
 }
 
@@ -2843,6 +3208,7 @@ async function markSeason(showId, seasonNum, watched) {
   const newProgress = await getEpisodeProgress(showId);
   loadSeasonsForDetail(tmdb, newProgress);
   refreshShowProgressCache();
+  if (watched) logActivity('season_watched', showId, { season: seasonNum });
   refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
   toast(watched ? `Season ${seasonNum} marked as watched` : `Season ${seasonNum} unmarked`);
 }
