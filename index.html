@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Marquee — TV Tracker</title>
+  <title>Marquee — TV & Movie Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -335,6 +335,80 @@
     }
     .filter-chip:hover { border-color: var(--amber); color: var(--text); }
     .filter-chip.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
+
+    /* MODE TOGGLE */
+    .mode-toggle {
+      display: flex;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 3px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .mode-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.3rem 0.85rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .mode-btn.active {
+      background: var(--amber);
+      color: #0D0D0F;
+    }
+
+    /* MOVIE WATCHED BADGE */
+    .movie-watched-stamp {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(76,175,130,0.9);
+      color: #fff;
+      border-radius: 50px;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .movie-runtime {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .watched-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.65rem 1.25rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .watched-toggle-btn:hover { opacity: 0.85; }
+    .watched-toggle-btn.unwatched {
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .watched-toggle-btn.unwatched:hover { border-color: var(--green); color: var(--green); }
+    .movie-watched-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
 
     /* SORT DROPDOWN */
     .sort-select {
@@ -1412,6 +1486,10 @@
 <div id="app">
   <div class="topbar">
     <div class="logo">🎬 Marquee</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-tv" onclick="setAppMode('tv')">📺 TV</button>
+      <button class="mode-btn" id="mode-movies" onclick="setAppMode('movies')">🎬 Movies</button>
+    </div>
     <div class="topbar-search">
       <span class="search-icon">🔍</span>
       <input type="text" id="search-input" placeholder="Search for a TV show…" autocomplete="off" />
@@ -1420,7 +1498,7 @@
         <div id="search-results"></div>
       </div>
     </div>
-    <div class="topbar-tabs">
+    <div class="topbar-tabs" id="topbar-tabs">
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
@@ -1487,10 +1565,13 @@ const TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjNDFhZjBiOGRlZjAzMWJhMjdhYzl
 
 let db = null;
 let currentUser = null;
-let authMode = 'signin'; // 'signin' | 'signup'
+let authMode = 'signin';
+let appMode = 'tv';           // 'tv' | 'movies'
 let currentTab = 'watching';
-let currentView = 'grid'; // 'grid' | 'list'
-let trackedShows = []; // local cache [{...supabase row, tmdb:{...}}]
+let currentMovieTab = 'to_watch'; // 'to_watch' | 'watched'
+let currentView = 'grid';
+let trackedShows = [];
+let trackedMovies = [];       // local cache [{...row, tmdb:{...}}]
 let activeAlerts = []; // local cache of undismissed alerts from the alerts table
 let activeDetailId = null;
 let searchDebounce = null;
@@ -1559,14 +1640,13 @@ async function onAuthSuccess(user) {
   if (emailDisplay) { emailDisplay.textContent = user.email; emailDisplay.style.display = 'inline'; }
 
   setupSearch();
-  await loadAllShows();
+  await Promise.all([loadAllShows(), loadAllMovies()]);
   await refreshShowProgressCache();
   await detectAndStoreAlerts();
   await loadActiveAlerts();
   renderTab();
   updateAlertBell();
 
-  // Up Next requires per-season TMDB fetches; don't block initial render on it
   refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
 }
 
@@ -1714,18 +1794,57 @@ async function tmdbCredits(showId) {
   return tmdbFetch(`/tv/${showId}/aggregate_credits?language=en-US`);
 }
 
+// ─── TMDB MOVIE HELPERS ───────────────────────────────────────────────────────
+async function tmdbMovieSearch(query) {
+  return tmdbFetch(`/search/movie?query=${encodeURIComponent(query)}&language=en-US&page=1`);
+}
+
+async function tmdbMovieDetail(id) {
+  return tmdbFetch(`/movie/${id}?language=en-US`);
+}
+
+async function tmdbMovieVideos(id) {
+  return tmdbFetch(`/movie/${id}/videos?language=en-US`);
+}
+
+async function tmdbMovieCredits(id) {
+  return tmdbFetch(`/movie/${id}/credits?language=en-US`);
+}
+
+async function tmdbMovieProviders(id) {
+  return tmdbFetch(`/movie/${id}/watch/providers`);
+}
+
+async function tmdbMovieSimilar(id) {
+  return tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`);
+}
+
 // ─── DATA LOADING ─────────────────────────────────────────────────────────────
 async function loadAllShows() {
   const { data, error } = await db.from('tracked_shows').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
 
-  // Fetch TMDB details for each
   trackedShows = await Promise.all((data || []).map(async row => {
     try {
       const tmdb = await tmdbShowDetail(row.tmdb_id);
       return { ...row, tmdb };
     } catch (e) {
       console.warn(`Failed to load TMDB data for show ${row.tmdb_id}:`, e);
+      return { ...row, tmdb: null };
+    }
+  }));
+}
+
+async function loadAllMovies() {
+  const { data, error } = await db.from('tracked_movies').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+
+  trackedMovies = await Promise.all((data || []).map(async row => {
+    try {
+      const tmdb = await tmdbMovieDetail(row.tmdb_id);
+      return { ...row, tmdb };
+    } catch (e) {
+      console.warn(`Failed to load TMDB data for movie ${row.tmdb_id}:`, e);
       return { ...row, tmdb: null };
     }
   }));
@@ -2028,7 +2147,10 @@ function setupSearch() {
     dropdown.classList.add('open');
     document.getElementById('search-loading').style.display = 'flex';
     document.getElementById('search-results').innerHTML = '';
-    searchDebounce = setTimeout(() => doSearch(q), 400);
+    searchDebounce = setTimeout(() => {
+      if (appMode === 'movies') doMovieSearch(q);
+      else doSearch(q);
+    }, 400);
   });
 
   input.addEventListener('focus', () => {
@@ -2068,6 +2190,39 @@ async function doSearch(query) {
   } catch (e) {
     document.getElementById('search-loading').style.display = 'none';
     document.getElementById('search-results').innerHTML = '<div class="search-empty">Search failed. Check your TMDB token.</div>';
+  }
+}
+
+async function doMovieSearch(query) {
+  try {
+    const data = await tmdbMovieSearch(query);
+    document.getElementById('search-loading').style.display = 'none';
+    const results = (data.results || []).slice(0, 8);
+    const container = document.getElementById('search-results');
+    if (!results.length) {
+      container.innerHTML = '<div class="search-empty">No movies found</div>';
+      return;
+    }
+    container.innerHTML = results.map(movie => {
+      const tracked = trackedMovies.find(m => m.tmdb_id === movie.id);
+      const poster = movie.poster_path ? `<img class="search-poster-thumb" src="${TMDB_IMG}/w92${movie.poster_path}" alt="" />` : `<div class="search-poster-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🎬</div>`;
+      const year = movie.release_date ? movie.release_date.slice(0,4) : '—';
+      const runtime = movie.runtime ? `${movie.runtime}m` : '';
+      return `
+        <div class="search-result-item" onclick="openMovieDetailById(${movie.id})">
+          ${poster}
+          <div class="search-result-info">
+            <div class="search-result-title">${esc(movie.title)}</div>
+            <div class="search-result-meta">${year}${runtime ? ` · ${runtime}` : ''} · ⭐ ${movie.vote_average?.toFixed(1) || '?'}</div>
+          </div>
+          ${tracked
+            ? `<span class="search-result-add tracked">✓ Tracked</span>`
+            : `<button class="search-result-add" onclick="event.stopPropagation();addMovie(${movie.id},'to_watch',this)">+ Add</button>`}
+        </div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('search-loading').style.display = 'none';
+    document.getElementById('search-results').innerHTML = '<div class="search-empty">Search failed.</div>';
   }
 }
 
@@ -2127,29 +2282,121 @@ async function removeShow(tmdbId) {
   toast('Show removed');
 }
 
+// ─── MOVIE CRUD ───────────────────────────────────────────────────────────────
+async function addMovie(tmdbId, status = 'to_watch', btn = null) {
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const { error } = await db.from('tracked_movies')
+      .upsert({ tmdb_id: tmdbId, status, user_id: currentUser.id }, { onConflict: 'user_id,tmdb_id' });
+    if (error) throw error;
+    await loadAllMovies();
+    calendarEpisodeCache = {}; // bust cache so calendar picks up new movie
+    renderTab();
+    toast('Movie added ✓');
+    if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
+  } catch (e) {
+    toast('Failed to add movie', true);
+    if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
+  }
+}
+
+async function toggleMovieWatched(tmdbId, currentlyWatched) {
+  const newStatus = currentlyWatched ? 'to_watch' : 'watched';
+  const watchedAt = newStatus === 'watched' ? new Date().toISOString() : null;
+  await db.from('tracked_movies')
+    .update({ status: newStatus, watched_at: watchedAt })
+    .eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
+  const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
+  if (movie) { movie.status = newStatus; movie.watched_at = watchedAt; }
+  // Refresh detail panel to update button state
+  openMovieDetailById(tmdbId);
+  renderTab();
+  toast(newStatus === 'watched' ? '✓ Marked as watched' : 'Moved back to To Watch');
+}
+
+async function removeMovie(tmdbId) {
+  await db.from('tracked_movies').delete().eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
+  trackedMovies = trackedMovies.filter(m => m.tmdb_id !== tmdbId);
+  closeDetailPanel();
+  renderTab();
+  toast('Movie removed');
+}
+
+
+function setAppMode(mode) {
+  appMode = mode;
+
+  // Update mode toggle buttons
+  document.getElementById('mode-tv').classList.toggle('active', mode === 'tv');
+  document.getElementById('mode-movies').classList.toggle('active', mode === 'movies');
+
+  // Swap tab bar
+  const tabsEl = document.getElementById('topbar-tabs');
+  const searchInput = document.getElementById('search-input');
+
+  if (mode === 'tv') {
+    tabsEl.innerHTML = `
+      <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
+      <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
+      <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
+      <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
+      <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+      <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
+    searchInput.placeholder = 'Search for a TV show…';
+    currentTab = 'watching';
+    updateAlertBell();
+  } else {
+    tabsEl.innerHTML = `
+      <button class="tab-btn active" onclick="switchMovieTab('to_watch')">To Watch</button>
+      <button class="tab-btn" onclick="switchMovieTab('watched')">Watched</button>
+      <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
+      <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>`;
+    searchInput.placeholder = 'Search for a movie…';
+    currentMovieTab = 'to_watch';
+  }
+
+  // Clear search
+  searchInput.value = '';
+  document.getElementById('search-dropdown').classList.remove('open');
+
+  renderTab();
+}
+
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = ['watching','watchlist','completed','feed','calendar','stats','alerts'];
+    const tabs = appMode === 'tv'
+      ? ['watching','watchlist','completed','feed','calendar','stats','alerts']
+      : ['to_watch','watched','calendar','stats'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   renderTab();
 }
 
+function switchMovieTab(tab) {
+  currentMovieTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const tabs = ['to_watch','watched','calendar','stats'];
+    btn.classList.toggle('active', tabs[i] === tab);
+  });
+  renderMoviesTab(document.getElementById('main-content'));
+}
+
 function renderTab() {
   const el = document.getElementById('main-content');
-  if (currentTab === 'alerts') {
-    renderAlerts(el);
-  } else if (currentTab === 'calendar') {
-    renderCalendar(el);
-  } else if (currentTab === 'stats') {
-    renderStats(el);
-  } else if (currentTab === 'feed') {
-    renderFeed(el);
-  } else {
-    renderShowsTab(el);
+  if (appMode === 'movies') {
+    if (currentTab === 'calendar') renderCalendar(el);
+    else if (currentTab === 'stats') renderMovieStats(el);
+    else renderMoviesTab(el);
+    return;
   }
+  if (currentTab === 'alerts') renderAlerts(el);
+  else if (currentTab === 'calendar') renderCalendar(el);
+  else if (currentTab === 'stats') renderStats(el);
+  else if (currentTab === 'feed') renderFeed(el);
+  else renderShowsTab(el);
 }
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
@@ -2275,6 +2522,123 @@ function setView(v) {
   currentView = v;
   renderTab();
 }
+
+// ─── MOVIES TAB ───────────────────────────────────────────────────────────────
+function renderMoviesTab(container) {
+  const filtered = trackedMovies.filter(m => m.status === currentMovieTab);
+  const label = currentMovieTab === 'to_watch' ? 'To Watch' : 'Watched';
+  const sorted = sortMovies(filtered, sortBy);
+
+  // Genre filter for movies
+  const availableGenres = getAvailableGenres(trackedMovies.filter(m => m.status === currentMovieTab));
+  const genreFiltered = genreFilter != null
+    ? sorted.filter(m => (m.tmdb?.genres || []).some(g => g.id === genreFilter))
+    : sorted;
+
+  let html = `
+    <div class="section-header">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <span class="section-title">${label}</span>
+        <span class="section-count">${genreFiltered.length}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <select class="sort-select" onchange="setSortBy(this.value)">
+          <option value="added" ${sortBy==='added'?'selected':''}>Recently Added</option>
+          <option value="name" ${sortBy==='name'?'selected':''}>Name (A–Z)</option>
+          <option value="rating" ${sortBy==='rating'?'selected':''}>Rating</option>
+          <option value="release" ${sortBy==='release'?'selected':''}>Release Date</option>
+        </select>
+        <div class="view-toggle">
+          <button class="view-btn ${currentView==='grid'?'active':''}" onclick="setView('grid')">⊞</button>
+          <button class="view-btn ${currentView==='list'?'active':''}" onclick="setView('list')">≡</button>
+        </div>
+      </div>
+    </div>`;
+
+  if (availableGenres.length) {
+    html += `<div class="filters-bar">
+      <button class="filter-chip ${genreFilter==null?'active':''}" onclick="setGenreFilter(null)">All Genres</button>
+      ${availableGenres.map(g => `<button class="filter-chip ${genreFilter===g.id?'active':''}" onclick="setGenreFilter(${g.id})">${esc(g.name)}</button>`).join('')}
+    </div>`;
+  }
+
+  container.innerHTML = html;
+
+  if (!genreFiltered.length) {
+    container.innerHTML += `<div class="empty-state"><div class="icon">🎬</div><h3>Nothing here yet</h3><p>Search for a movie above and add it to your ${label.toLowerCase()} list.</p></div>`;
+    return;
+  }
+
+  if (currentView === 'grid') {
+    container.innerHTML += `<div class="shows-grid">${genreFiltered.map(movieCard).join('')}</div>`;
+  } else {
+    container.innerHTML += `<div class="shows-list">${genreFiltered.map(movieListRow).join('')}</div>`;
+  }
+}
+
+function sortMovies(movies, mode) {
+  const arr = [...movies];
+  switch (mode) {
+    case 'name':
+      return arr.sort((a,b) => (a.tmdb?.title||'').localeCompare(b.tmdb?.title||''));
+    case 'rating':
+      return arr.sort((a,b) => (b.tmdb?.vote_average||0)-(a.tmdb?.vote_average||0));
+    case 'release':
+      return arr.sort((a,b) => {
+        const da = a.tmdb?.release_date, db_ = b.tmdb?.release_date;
+        if (da && db_) return new Date(db_) - new Date(da);
+        if (da) return -1; if (db_) return 1; return 0;
+      });
+    case 'added': default:
+      return arr.sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+  }
+}
+
+function movieCard(movie) {
+  if (!movie.tmdb) return '';
+  const t = movie.tmdb;
+  const poster = t.poster_path
+    ? `<img class="show-card-poster" src="${TMDB_IMG}/w342${t.poster_path}" alt="${esc(t.title)}" loading="lazy" />`
+    : `<div class="show-card-poster-placeholder">🎬</div>`;
+  const year = t.release_date?.slice(0,4) || '—';
+  const runtime = t.runtime ? `${Math.floor(t.runtime/60)}h ${t.runtime%60}m` : '';
+  const isWatched = movie.status === 'watched';
+  return `
+    <div class="show-card" onclick="openMovieDetailById(${t.id})" style="position:relative;">
+      ${isWatched ? '<div class="movie-watched-stamp">✓ Watched</div>' : ''}
+      ${poster}
+      <div class="show-card-body">
+        <div class="show-card-title">${esc(t.title)}</div>
+        <div class="show-card-meta">
+          <span>${year}</span>
+          ${runtime ? `<span class="movie-runtime">⏱ ${runtime}</span>` : ''}
+          ${t.vote_average ? `<span>⭐ ${t.vote_average.toFixed(1)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function movieListRow(movie) {
+  if (!movie.tmdb) return '';
+  const t = movie.tmdb;
+  const poster = t.poster_path
+    ? `<img class="list-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />`
+    : `<div class="list-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🎬</div>`;
+  const year = t.release_date?.slice(0,4) || '—';
+  const runtime = t.runtime ? `${Math.floor(t.runtime/60)}h ${t.runtime%60}m` : '';
+  return `
+    <div class="list-show-row" onclick="openMovieDetailById(${t.id})">
+      ${poster}
+      <div class="list-info">
+        <div class="list-title">${esc(t.title)}</div>
+        <div class="list-meta">${year}${runtime ? ` · ${runtime}` : ''}${t.vote_average ? ` · ⭐ ${t.vote_average.toFixed(1)}` : ''}</div>
+      </div>
+      ${movie.status === 'watched' && movie.watched_at
+        ? `<div style="font-size:0.75rem;color:var(--text-muted);flex-shrink:0;">Watched ${formatDate(movie.watched_at.slice(0,10))}</div>`
+        : ''}
+    </div>`;
+}
+
 
 function showCard(show) {
   if (!show.tmdb) return '';
@@ -2488,21 +2852,13 @@ async function getEpisodesForMonth(year, month) {
   const showsWithData = trackedShows.filter(s => s.tmdb);
   const results = [];
 
-  // For each show, figure out which season(s) could have episodes in this visible month.
-  // We use first_air_date/last_air_date per season to avoid fetching irrelevant seasons.
   await Promise.all(showsWithData.map(async show => {
     const t = show.tmdb;
     const seasons = (t.seasons || []).filter(s => s.season_number > 0);
 
     for (const s of seasons) {
-      // Quick filter: skip seasons clearly outside this month using season air_date as a hint,
-      // but TMDB only gives season-level air_date (premiere date), so we still need to check
-      // seasons whose premiere is on/before month end and could plausibly still be airing,
-      // OR whose premiere falls within or after this month.
       if (s.air_date) {
         const seasonStart = new Date(s.air_date);
-        // If season started more than ~10 months before this visible month, it's almost
-        // certainly fully aired already and irrelevant — skip fetching it to save calls.
         const monthsDiff = (monthStart.getFullYear() - seasonStart.getFullYear()) * 12 + (monthStart.getMonth() - seasonStart.getMonth());
         if (monthsDiff > 10) continue;
       }
@@ -2520,13 +2876,29 @@ async function getEpisodesForMonth(year, month) {
               poster: t.poster_path,
               season: s.season_number,
               episode: ep.episode_number,
-              name: ep.name
+              name: ep.name,
+              type: 'episode'
             });
           }
         }
       } catch (e) { /* skip season on error */ }
     }
   }));
+
+  // Add movie release dates for To Watch movies releasing this month
+  const toWatchMovies = trackedMovies.filter(m => m.status === 'to_watch' && m.tmdb?.release_date);
+  for (const movie of toWatchMovies) {
+    const releaseDate = new Date(movie.tmdb.release_date + 'T00:00:00');
+    if (releaseDate >= monthStart && releaseDate <= monthEnd) {
+      results.push({
+        date: movie.tmdb.release_date,
+        showId: movie.tmdb_id,
+        showName: movie.tmdb.title,
+        poster: movie.tmdb.poster_path,
+        type: 'movie'
+      });
+    }
+  }
 
   calendarEpisodeCache[monthKey] = results;
   return results;
@@ -2567,10 +2939,13 @@ function renderCalendarGrid(episodes) {
     html += `
       <div class="calendar-cell ${isToday ? 'today' : ''}">
         <span class="calendar-date-num">${day}</span>
-        ${visibleEps.map(ep => `
-          <div class="calendar-ep-chip ${isPast ? 'past' : ''}" onclick="openDetailById(${ep.showId})" title="${esc(ep.showName)} S${ep.season}E${ep.episode}: ${esc(ep.name)}">
-            ${esc(ep.showName)} S${ep.season}E${ep.episode}
-          </div>`).join('')}
+        ${visibleEps.map(ep => {
+          const isMovie = ep.type === 'movie';
+          const clickFn = isMovie ? `openMovieDetailById(${ep.showId})` : `openDetailById(${ep.showId})`;
+          const label = isMovie ? `🎬 ${esc(ep.showName)}` : `${esc(ep.showName)} S${ep.season}E${ep.episode}`;
+          const title = isMovie ? `${esc(ep.showName)} — Movie Release` : `${esc(ep.showName)} S${ep.season}E${ep.episode}: ${esc(ep.name)}`;
+          return `<div class="calendar-ep-chip ${isPast ? 'past' : ''}" onclick="${clickFn}" title="${title}">${label}</div>`;
+        }).join('')}
         ${extra > 0 ? `<div class="calendar-more-chip">+${extra} more</div>` : ''}
       </div>`;
   }
@@ -2701,6 +3076,52 @@ function timeAgo(isoString) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ─── MOVIE STATS ──────────────────────────────────────────────────────────────
+async function renderMovieStats(container) {
+  container.innerHTML = `<div class="section-header"><span class="section-title">Movie Stats</span></div><div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>`;
+
+  const watched = trackedMovies.filter(m => m.status === 'watched' && m.tmdb);
+  const toWatch = trackedMovies.filter(m => m.status === 'to_watch' && m.tmdb);
+
+  let totalMinutes = 0;
+  const genreCounts = {};
+  const directorCounts = {};
+  let ratingSum = 0, ratingCount = 0;
+
+  for (const m of watched) {
+    const t = m.tmdb;
+    totalMinutes += t.runtime || 0;
+    (t.genres||[]).forEach(g => { genreCounts[g.name] = (genreCounts[g.name]||0)+1; });
+    if (t.vote_average) { ratingSum += t.vote_average; ratingCount++; }
+  }
+
+  const topGenres = Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([name,count])=>({name,count}));
+  const maxGenre = topGenres[0]?.count || 1;
+  const avgRating = ratingCount ? ratingSum/ratingCount : null;
+  const totalHours = Math.round(totalMinutes/60);
+
+  container.innerHTML = `
+    <div class="section-header"><span class="section-title">Movie Stats</span></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-value">${trackedMovies.length}</div><div class="stat-card-label">Movies Tracked</div></div>
+      <div class="stat-card"><div class="stat-card-value">${watched.length}</div><div class="stat-card-label">Movies Watched</div></div>
+      <div class="stat-card"><div class="stat-card-value">${toWatch.length}</div><div class="stat-card-label">On To Watch List</div></div>
+      <div class="stat-card"><div class="stat-card-value">${totalHours}</div><div class="stat-card-label">Hours Watched</div></div>
+      <div class="stat-card"><div class="stat-card-value">${avgRating ? avgRating.toFixed(1) : '—'}</div><div class="stat-card-label">Avg. Rating</div></div>
+    </div>
+    ${topGenres.length ? `
+    <div class="stats-section">
+      <div class="seasons-label" style="margin-bottom:0.9rem;">🎭 Favorite Genres</div>
+      ${topGenres.map(g => `
+        <div class="stats-bar-row">
+          <div class="stats-bar-label">${esc(g.name)}</div>
+          <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${Math.round((g.count/maxGenre)*100)}%"></div></div>
+          <div class="stats-bar-value">${g.count} film${g.count!==1?'s':''}</div>
+        </div>`).join('')}
+    </div>` : ''}
+    ${!trackedMovies.length ? `<div class="empty-state"><div class="icon">🎬</div><h3>No movies yet</h3><p>Search for movies and add them to start building stats.</p></div>` : ''}`;
 }
 
 // ─── STATS TAB ────────────────────────────────────────────────────────────────
@@ -2887,6 +3308,162 @@ async function openDetailById(tmdbId) {
     document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load show details: ${esc(e.message)}</div>`;
   }
 }
+
+async function openMovieDetailById(tmdbId) {
+  activeDetailId = tmdbId;
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-backdrop').innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;"><div class="spinner"></div></div>`;
+  document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;display:flex;justify-content:center;"><div class="spinner"></div></div>`;
+
+  try {
+    let movie = trackedMovies.find(m => Number(m.tmdb_id) === Number(tmdbId));
+    let tmdb = movie?.tmdb;
+    if (!tmdb) tmdb = await tmdbMovieDetail(tmdbId);
+
+    const [providers, similar, videos, credits] = await Promise.all([
+      tmdbMovieProviders(tmdbId).catch(() => ({})),
+      tmdbMovieSimilar(tmdbId).catch(() => ({ results: [] })),
+      tmdbMovieVideos(tmdbId).catch(() => ({ results: [] })),
+      tmdbMovieCredits(tmdbId).catch(() => ({ cast: [], crew: [] }))
+    ]);
+
+    renderMovieDetailPanel(tmdb, movie, providers, similar, videos, credits);
+  } catch (e) {
+    console.error('openMovieDetailById error:', e);
+    document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load movie details: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderMovieDetailPanel(tmdb, movie, providers, similar, videos, credits) {
+  const bd = document.getElementById('detail-backdrop');
+  bd.innerHTML = tmdb.backdrop_path
+    ? `<img src="${TMDB_IMG}/w1280${tmdb.backdrop_path}" alt="" />`
+    : `<div class="detail-backdrop-placeholder">🎬</div>`;
+
+  const isTracked = !!movie;
+  const isWatched = movie?.status === 'watched';
+
+  // Runtime
+  const runtime = tmdb.runtime
+    ? `${Math.floor(tmdb.runtime/60)}h ${tmdb.runtime%60}m`
+    : null;
+
+  // Streaming
+  const usProviders = providers?.results?.US?.flatrate || [];
+  const streamingHtml = usProviders.length
+    ? usProviders.map(p => `<div class="streaming-badge"><img src="${TMDB_IMG}/w45${p.logo_path}" alt="${esc(p.provider_name)}" />${esc(p.provider_name)}</div>`).join('')
+    : '<span style="font-size:0.82rem;color:var(--text-muted);">No streaming info available (US)</span>';
+
+  // Genres
+  const genres = (tmdb.genres||[]).map(g => `<span style="background:var(--bg3);border:1px solid var(--border);padding:0.15rem 0.55rem;border-radius:50px;font-size:0.72rem;">${esc(g.name)}</span>`).join('');
+
+  // Trailer
+  const allVideos = videos?.results || [];
+  const trailer = allVideos.find(v => v.site==='YouTube' && v.type==='Trailer' && v.official)
+    || allVideos.find(v => v.site==='YouTube' && v.type==='Trailer')
+    || allVideos.find(v => v.site==='YouTube');
+  const trailerHtml = trailer
+    ? `<div class="trailer-wrap"><iframe src="https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${esc(trailer.name)}"></iframe></div>`
+    : `<div class="trailer-wrap" style="padding-top:0;height:80px;"><div class="trailer-placeholder"><div class="icon">🎞️</div><span>No trailer available</span></div></div>`;
+
+  // Cast
+  const castList = (credits?.cast||[]).slice(0,12);
+  const castHtml = castList.length ? `
+    <div style="margin-bottom:1.5rem;">
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🎭 Cast</div>
+      <div class="cast-scroll">
+        ${castList.map(c => {
+          const photo = c.profile_path
+            ? `<img class="cast-photo" src="${TMDB_IMG}/w185${c.profile_path}" alt="${esc(c.name)}" loading="lazy" />`
+            : `<div class="cast-photo-placeholder">👤</div>`;
+          return `<div class="cast-card">${photo}<div class="cast-name">${esc(c.name)}</div>${c.character?`<div class="cast-character">${esc(c.character)}</div>`:''}</div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // Crew — director, writers
+  const keyRoles = ['Director','Screenplay','Writer','Story'];
+  const crewList = (credits?.crew||[]).filter(c => keyRoles.includes(c.job)).slice(0,6);
+  const crewHtml = crewList.length ? `
+    <div style="margin-bottom:1.5rem;">
+      <div class="seasons-label" style="margin-bottom:0.6rem;">🎬 Crew</div>
+      <div class="crew-row">
+        ${crewList.map(c => `<div class="crew-chip"><strong>${esc(c.name)}</strong> <span>· ${esc(c.job)}</span></div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // Similar
+  const simItems = (similar?.results||[]).slice(0,8).map(m => {
+    const img = m.poster_path ? `<img class="suggestion-poster" src="${TMDB_IMG}/w185${m.poster_path}" alt="${esc(m.title)}" />` : `<div class="suggestion-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🎬</div>`;
+    return `<div class="suggestion-card" onclick="openMovieDetailById(${m.id})">${img}<div class="suggestion-title">${esc(m.title)}</div></div>`;
+  }).join('');
+
+  // Actions
+  const actionsHtml = isTracked
+    ? `<button class="watched-toggle-btn ${isWatched ? '' : 'unwatched'}" onclick="toggleMovieWatched(${tmdb.id}, ${isWatched})">
+        ${isWatched ? '✓ Watched' : '○ Mark as Watched'}
+       </button>
+       ${isWatched && movie.watched_at ? `<div class="movie-watched-date">Watched ${formatDate(movie.watched_at.slice(0,10))}</div>` : ''}
+       <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+         <button class="btn btn-ghost" style="${movie.status==='to_watch'?'border-color:var(--amber);color:var(--amber);':''}" onclick="updateMovieStatus(${tmdb.id},'to_watch')">To Watch</button>
+         <button class="btn btn-ghost" style="${movie.status==='watched'?'border-color:var(--green);color:var(--green);':''}" onclick="updateMovieStatus(${tmdb.id},'watched')">Watched</button>
+         <button class="btn btn-ghost" style="color:var(--red);border-color:rgba(224,82,82,0.3);" onclick="removeMovie(${tmdb.id})">Remove</button>
+       </div>`
+    : `<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" style="width:auto;" onclick="addMovie(${tmdb.id},'to_watch')">+ Add to To Watch</button>
+        <button class="btn btn-ghost" onclick="addMovie(${tmdb.id},'watched')">Add as Watched</button>
+       </div>`;
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-header">
+      ${tmdb.poster_path
+        ? `<img class="detail-poster" src="${TMDB_IMG}/w185${tmdb.poster_path}" alt="${esc(tmdb.title)}" />`
+        : `<div class="detail-poster-placeholder">🎬</div>`}
+      <div class="detail-info">
+        <div class="detail-title">${esc(tmdb.title)}</div>
+        <div class="detail-meta-row">
+          ${tmdb.release_date ? `<span>${tmdb.release_date.slice(0,4)}</span>` : ''}
+          ${runtime ? `<span>⏱ ${runtime}</span>` : ''}
+          ${tmdb.vote_average ? `<span>⭐ ${tmdb.vote_average.toFixed(1)}/10</span>` : ''}
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">${genres}</div>
+        ${actionsHtml}
+      </div>
+    </div>
+
+    <p class="detail-overview">${esc(tmdb.overview || 'No overview available.')}</p>
+
+    <div style="margin-bottom:1.25rem;">
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🎞️ Trailer</div>
+      ${trailerHtml}
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
+      <div class="seasons-label" style="margin-bottom:0.75rem;">📺 Where to Watch</div>
+      <div class="streaming-row">${streamingHtml}</div>
+    </div>
+
+    ${castHtml}
+    ${crewHtml}
+
+    ${simItems ? `<div style="margin-bottom:1.5rem;">
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🎬 You Might Also Like</div>
+      <div class="suggestions-row">${simItems}</div>
+    </div>` : ''}
+  `;
+}
+
+async function updateMovieStatus(tmdbId, status) {
+  const watchedAt = status === 'watched' ? new Date().toISOString() : null;
+  await db.from('tracked_movies').update({ status, watched_at: watchedAt }).eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
+  const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
+  if (movie) { movie.status = status; movie.watched_at = watchedAt; }
+  openMovieDetailById(tmdbId);
+  renderTab();
+  toast(`Moved to ${status === 'to_watch' ? 'To Watch' : 'Watched'}`);
+}
+
+
 
 function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, credits) {
   // Backdrop
