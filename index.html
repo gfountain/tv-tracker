@@ -1059,9 +1059,32 @@
       border-radius: var(--radius);
       padding: 0.75rem 1rem;
       cursor: pointer;
-      transition: border-color 0.15s, transform 0.1s;
+      transition: border-color 0.15s;
+      flex-wrap: wrap;
     }
-    .list-show-row:hover { border-color: rgba(245,166,35,0.3); transform: translateX(2px); }
+    .list-show-row:hover { border-color: rgba(245,166,35,0.3); }
+    .list-row-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      min-width: 0;
+    }
+    .list-show-row.expanded { border-color: var(--amber-glow); }
+    .list-row-expand-body {
+      width: 100%;
+      border-top: 1px solid var(--border);
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+    }
+    .list-row-chevron {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+      padding: 0.25rem;
+    }
+    .list-show-row.expanded .list-row-chevron { transform: rotate(180deg); color: var(--amber); }
     .list-poster {
       width: 42px;
       height: 62px;
@@ -1069,10 +1092,25 @@
       border-radius: 5px;
       background: var(--bg4);
       flex-shrink: 0;
+      cursor: pointer;
     }
+    .list-poster:hover { opacity: 0.8; }
     .list-info { flex: 1; min-width: 0; }
-    .list-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.2rem; }
+    .list-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .list-title:hover { color: var(--amber); }
     .list-meta { font-size: 0.78rem; color: var(--text-muted); }
+    .list-next-air {
+      font-size: 0.75rem;
+      color: var(--amber);
+      font-weight: 600;
+      margin-top: 0.1rem;
+    }
     .list-progress { width: 100px; flex-shrink: 0; }
     .list-progress-text { font-size: 0.75rem; color: var(--text-muted); text-align: right; margin-bottom: 0.3rem; }
     .list-pbar { height: 3px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
@@ -1579,6 +1617,7 @@ let activeAlerts = []; // local cache of undismissed alerts from the alerts tabl
 let activeDetailId = null;
 let searchDebounce = null;
 let openSeasonIds = new Set(); // tracks which season accordions are open, survives re-renders
+let expandedListRows = new Set(); // tracks which list-view rows are expanded inline
 let hideWatchedSeasonsMap = {}; // { [showId]: boolean } whether to hide fully-watched seasons
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
@@ -2687,21 +2726,85 @@ function showCard(show) {
 function showListRow(show) {
   if (!show.tmdb) return '';
   const t = show.tmdb;
-  const poster = t.poster_path ? `<img class="list-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />` : `<div class="list-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
+  const showId = t.id;
+  const isExpanded = expandedListRows.has(showId);
+
+  const poster = t.poster_path
+    ? `<img class="list-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" onclick="event.stopPropagation();openDetailById(${showId})" title="Open details" />`
+    : `<div class="list-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;" onclick="event.stopPropagation();openDetailById(${showId})">📺</div>`;
+
   const progress = getLocalProgress(show);
-  return `
-    <div class="list-show-row" onclick="openDetailById(${t.id})">
-      ${poster}
-      <div class="list-info">
-        <div class="list-title">${esc(t.name)}</div>
-        <div class="list-meta">${statusBadge(t.status)} · ${t.first_air_date?.slice(0,4) || '—'}</div>
+
+  // Next air date
+  const nextEp = t.next_episode_to_air;
+  let nextAirHtml = '';
+  if (nextEp?.air_date) {
+    const d = new Date(nextEp.air_date + 'T00:00:00');
+    const now = new Date();
+    const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+    const label = diff === 0 ? 'Today!' : diff === 1 ? 'Tomorrow' : diff > 0 ? `in ${diff}d` : null;
+    if (label) {
+      nextAirHtml = `<div class="list-next-air">🔔 S${nextEp.season_number}E${nextEp.episode_number} airs ${label}</div>`;
+    }
+  }
+
+  const expandBody = isExpanded ? `
+    <div class="list-row-expand-body" id="list-expand-${showId}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+        <span class="seasons-label">Episodes</span>
+        <button class="mark-season-btn" style="font-size:0.75rem;" onclick="event.stopPropagation();toggleHideWatchedSeasons(${showId})" id="hide-watched-btn-${showId}">
+          ${hideWatchedSeasonsMap[showId] === false ? '🙈 Hide Watched Seasons' : '👁 Show Watched Seasons'}
+        </button>
       </div>
-      ${progress.total > 0 ? `
-      <div class="list-progress">
-        <div class="list-progress-text">${progress.watched}/${progress.total} eps</div>
-        <div class="list-pbar"><div class="list-pbar-fill" style="width:${progress.pct}%"></div></div>
-      </div>` : ''}
+      <div id="list-seasons-${showId}">
+        <div style="display:flex;justify-content:center;padding:1rem;"><div class="spinner"></div></div>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="list-show-row ${isExpanded ? 'expanded' : ''}" id="list-row-${showId}" onclick="toggleListRowExpand(${showId})">
+      <div class="list-row-header">
+        ${poster}
+        <div class="list-info">
+          <div class="list-title" onclick="event.stopPropagation();openDetailById(${showId})">${esc(t.name)}</div>
+          <div class="list-meta">${statusBadge(t.status)} · ${t.first_air_date?.slice(0,4) || '—'}</div>
+          ${nextAirHtml}
+        </div>
+        ${progress.total > 0 ? `
+        <div class="list-progress">
+          <div class="list-progress-text">${progress.watched}/${progress.total} eps</div>
+          <div class="list-pbar"><div class="list-pbar-fill" style="width:${progress.pct}%"></div></div>
+        </div>` : ''}
+        <span class="list-row-chevron">▾</span>
+      </div>
+      ${expandBody}
     </div>`;
+}
+
+async function toggleListRowExpand(showId) {
+  const wasExpanded = expandedListRows.has(showId);
+
+  if (wasExpanded) {
+    expandedListRows.delete(showId);
+    const show = trackedShows.find(s => s.tmdb_id === showId);
+    if (show) {
+      const rowEl = document.getElementById(`list-row-${showId}`);
+      if (rowEl) rowEl.outerHTML = showListRow(show);
+    }
+    return;
+  }
+
+  expandedListRows.add(showId);
+  const show = trackedShows.find(s => s.tmdb_id === showId);
+  if (!show) return;
+
+  // Re-render row with expand body visible
+  const rowEl = document.getElementById(`list-row-${showId}`);
+  if (rowEl) rowEl.outerHTML = showListRow(show);
+
+  // Load seasons directly into the inline container
+  const progress = await getEpisodeProgress(showId);
+  await loadSeasonsForDetail(show.tmdb, progress, `list-seasons-${showId}`);
 }
 
 function getLocalProgress(show) {
@@ -3700,8 +3803,8 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, c
   }
 }
 
-async function loadSeasonsForDetail(tmdb, epProgress) {
-  const container = document.getElementById('seasons-accordions');
+async function loadSeasonsForDetail(tmdb, epProgress, containerId = 'seasons-accordions') {
+  const container = document.getElementById(containerId);
   if (!container) return;
 
   const seasons = (tmdb.seasons || []).filter(s => s.season_number > 0);
@@ -3787,8 +3890,16 @@ function toggleHideWatchedSeasons(showId) {
 
   const show = trackedShows.find(s => s.tmdb_id === showId);
   if (show?.tmdb) {
-    getEpisodeProgress(showId).then(progress => loadSeasonsForDetail(show.tmdb, progress));
+    getEpisodeProgress(showId).then(progress => loadSeasonsForDetail(show.tmdb, progress, getActiveSeasonsContainerId(showId)));
   }
+}
+
+// Returns the ID of whichever seasons container is currently visible for a show —
+// either the slide-out panel's 'seasons-accordions' or an inline expanded list row.
+function getActiveSeasonsContainerId(showId) {
+  const inlineEl = document.getElementById(`list-seasons-${showId}`);
+  if (inlineEl) return `list-seasons-${showId}`;
+  return 'seasons-accordions';
 }
 
 function toggleSeason(showId, seasonNum) {
@@ -3815,16 +3926,13 @@ async function toggleEpisode(showId, seasonNum, epNum) {
     user_id: currentUser.id
   }, { onConflict: 'user_id,tmdb_show_id,season_number,episode_number' });
 
-  // Refresh detail — open state is preserved via openSeasonIds
   const show = trackedShows.find(s => s.tmdb_id === showId);
   if (show?.tmdb) {
     const newProgress = await getEpisodeProgress(showId);
-    loadSeasonsForDetail(show.tmdb, newProgress);
+    loadSeasonsForDetail(show.tmdb, newProgress, getActiveSeasonsContainerId(showId));
   }
   refreshShowProgressCache();
   if (nowWatched) {
-    // Try to get episode name from already-loaded season data
-    const show = trackedShows.find(s => s.tmdb_id === showId);
     logActivity('episode_watched', showId, { season: seasonNum, episode: epNum });
   }
   refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
@@ -3851,7 +3959,7 @@ async function markSeason(showId, seasonNum, watched) {
   }
 
   const newProgress = await getEpisodeProgress(showId);
-  loadSeasonsForDetail(tmdb, newProgress);
+  loadSeasonsForDetail(tmdb, newProgress, getActiveSeasonsContainerId(showId));
   refreshShowProgressCache();
   if (watched) logActivity('season_watched', showId, { season: seasonNum });
   refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
