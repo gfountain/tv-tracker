@@ -2116,7 +2116,8 @@ function updateAlertBell() {
 async function logActivity(type, tmdbId, extra = {}) {
   if (!currentUser) return;
   const show = trackedShows.find(s => s.tmdb_id === tmdbId);
-  const showName = show?.tmdb?.name || extra.showName || null;
+  const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
+  const showName = show?.tmdb?.name || movie?.tmdb?.title || extra.showName || null;
   try {
     await db.from('activity_log').insert({
       user_id: currentUser.id,
@@ -2128,8 +2129,7 @@ async function logActivity(type, tmdbId, extra = {}) {
       episode_name: extra.episodeName ?? null,
       meta: extra.meta ?? null
     });
-    // Bust the feed cache so it reloads next time the Feed tab is opened
-    feedItems = [];
+    feedItems = []; // bust cache so Feed reloads fresh on next open
   } catch (e) {
     console.warn('Activity log write failed:', e);
   }
@@ -2241,7 +2241,7 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     renderTab();
     toast('Show added to your list ✓');
     if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
-    logActivity('show_added', tmdbId);
+    await logActivity('show_added', tmdbId);
     refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
   } catch (e) {
     toast('Failed to add show', true);
@@ -2291,11 +2291,11 @@ async function addMovie(tmdbId, status = 'to_watch', btn = null) {
     if (error) throw error;
     await loadAllMovies();
     calendarEpisodeCache = {};
+    const addedMovie = trackedMovies.find(m => m.tmdb_id === tmdbId);
+    await logActivity('movie_added', tmdbId, { showName: addedMovie?.tmdb?.title, meta: { status } });
     renderTab();
     toast('Movie added ✓');
     if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
-    const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
-    logActivity('movie_added', tmdbId, { showName: movie?.tmdb?.title, meta: { status } });
   } catch (e) {
     toast('Failed to add movie', true);
     if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
