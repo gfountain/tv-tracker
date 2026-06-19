@@ -2333,11 +2333,9 @@ async function removeMovie(tmdbId) {
 function setAppMode(mode) {
   appMode = mode;
 
-  // Update mode toggle buttons
   document.getElementById('mode-tv').classList.toggle('active', mode === 'tv');
   document.getElementById('mode-movies').classList.toggle('active', mode === 'movies');
 
-  // Swap tab bar
   const tabsEl = document.getElementById('topbar-tabs');
   const searchInput = document.getElementById('search-input');
 
@@ -2352,18 +2350,21 @@ function setAppMode(mode) {
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
     searchInput.placeholder = 'Search for a TV show…';
     currentTab = 'watching';
-    updateAlertBell();
   } else {
     tabsEl.innerHTML = `
       <button class="tab-btn active" onclick="switchMovieTab('to_watch')">To Watch</button>
       <button class="tab-btn" onclick="switchMovieTab('watched')">Watched</button>
+      <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
-      <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>`;
+      <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+      <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
     searchInput.placeholder = 'Search for a movie…';
     currentMovieTab = 'to_watch';
   }
 
-  // Clear search
+  // Re-attach alert dot state after re-rendering the tab bar
+  updateAlertBell();
+
   searchInput.value = '';
   document.getElementById('search-dropdown').classList.remove('open');
 
@@ -2373,10 +2374,12 @@ function setAppMode(mode) {
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
+  // Active state: in TV mode tabs are at indices 0-6; in Movies mode, media tabs are
+  // at 0-1 (handled by switchMovieTab) and shared tabs start at index 2.
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
     const tabs = appMode === 'tv'
       ? ['watching','watchlist','completed','feed','calendar','stats','alerts']
-      : ['to_watch','watched','calendar','stats'];
+      : ['to_watch','watched','feed','calendar','stats','alerts'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   renderTab();
@@ -2384,8 +2387,9 @@ function switchTab(tab) {
 
 function switchMovieTab(tab) {
   currentMovieTab = tab;
+  // Only mark the first two buttons active (To Watch / Watched); shared tabs use switchTab
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = ['to_watch','watched','calendar','stats'];
+    const tabs = ['to_watch','watched','feed','calendar','stats','alerts'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   renderMoviesTab(document.getElementById('main-content'));
@@ -2393,16 +2397,16 @@ function switchMovieTab(tab) {
 
 function renderTab() {
   const el = document.getElementById('main-content');
+  // Feed and Alerts are shared across both modes
+  if (currentTab === 'feed') { renderFeed(el); return; }
+  if (currentTab === 'alerts') { renderAlerts(el); return; }
+  if (currentTab === 'calendar') { renderCalendar(el); return; }
   if (appMode === 'movies') {
-    if (currentTab === 'calendar') renderCalendar(el);
-    else if (currentTab === 'stats') renderMovieStats(el);
+    if (currentTab === 'stats') renderMovieStats(el);
     else renderMoviesTab(el);
     return;
   }
-  if (currentTab === 'alerts') renderAlerts(el);
-  else if (currentTab === 'calendar') renderCalendar(el);
-  else if (currentTab === 'stats') renderStats(el);
-  else if (currentTab === 'feed') renderFeed(el);
+  if (currentTab === 'stats') renderStats(el);
   else renderShowsTab(el);
 }
 
@@ -2708,15 +2712,16 @@ function getLocalProgress(show) {
 function renderAlerts(container) {
   const shows = trackedShows.filter(s => s.tmdb && s.status !== 'completed');
 
-  const upcoming = shows.filter(s => getUpcomingAlert(s.tmdb));
-  const cancelled = shows.filter(s => ['Canceled','Ended'].includes(s.tmdb?.status));
-  const returning = shows.filter(s => s.tmdb?.status === 'Returning Series');
+  const upcoming = shows.filter(s => getUpcomingAlert(s.tmdb) && !isLiveAlertSnoozed(s.tmdb.id, 'upcoming', s.tmdb));
+  const cancelled = shows.filter(s => ['Canceled','Ended'].includes(s.tmdb?.status) && !isLiveAlertSnoozed(s.tmdb.id, 'ended', s.tmdb));
+  const returning = shows.filter(s => s.tmdb?.status === 'Returning Series' && !isLiveAlertSnoozed(s.tmdb.id, 'returning', s.tmdb));
+
+  const hasAnything = activeAlerts.length || upcoming.length || cancelled.length || returning.length;
 
   container.innerHTML = `
     <div class="section-header"><span class="section-title">Alerts & Updates</span></div>
-    ${(!shows.length && !activeAlerts.length) ? `<div class="empty-state"><div class="icon">🔔</div><h3>No alerts</h3><p>Add shows to see upcoming air dates and status changes.</p></div>` : ''}`;
+    ${!hasAnything ? `<div class="empty-state"><div class="icon">🔔</div><h3>All clear</h3><p>No alerts right now. Add shows to track upcoming episodes and status changes.</p></div>` : ''}`;
 
-  // Notification feed — dismissible, persisted events (new season dates, status changes, etc.)
   if (activeAlerts.length) {
     const allIds = activeAlerts.map(a => a.id);
     container.innerHTML += `<div style="margin-bottom:1.5rem;">
@@ -2778,9 +2783,37 @@ function notificationRow(alert) {
     </div>`;
 }
 
+function getLiveAlertSnoozeKey(showId, type, tmdb) {
+  // Key encodes enough info to auto-expire when the underlying condition changes
+  if (type === 'upcoming') {
+    const airDate = tmdb.next_episode_to_air?.air_date || '';
+    return `snooze:upcoming:${showId}:${airDate}`;
+  }
+  if (type === 'ended') return `snooze:ended:${showId}:${tmdb.status}`;
+  if (type === 'returning') return `snooze:returning:${showId}`;
+  return `snooze:${type}:${showId}`;
+}
+
+function isLiveAlertSnoozed(showId, type, tmdb) {
+  const key = getLiveAlertSnoozeKey(showId, type, tmdb);
+  return localStorage.getItem(key) === '1';
+}
+
+function snoozeLiveAlert(showId, type, tmdb) {
+  const key = getLiveAlertSnoozeKey(showId, type, tmdb);
+  localStorage.setItem(key, '1');
+  // Re-render alerts so the row disappears immediately
+  renderAlerts(document.getElementById('main-content'));
+}
+
 function alertRow(show, type) {
   const t = show.tmdb;
-  const poster = t.poster_path ? `<img class="alert-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />` : `<div class="alert-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
+  if (isLiveAlertSnoozed(t.id, type, t)) return '';
+
+  const poster = t.poster_path
+    ? `<img class="alert-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />`
+    : `<div class="alert-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
+
   const alertTxt = type === 'upcoming'
     ? getUpcomingAlertText(t)
     : type === 'ended'
@@ -2790,13 +2823,14 @@ function alertRow(show, type) {
   const dateStr = type === 'upcoming' ? getNextAirDate(t) : '';
 
   return `
-    <div class="alert-row ${type === 'upcoming' ? 'amber-alert' : ''}" onclick="openDetailById(${t.id})">
+    <div class="alert-row ${type === 'upcoming' ? 'amber-alert' : ''}" id="live-alert-${t.id}-${type}" onclick="openDetailById(${t.id})">
       ${poster}
       <div class="alert-info">
         <div class="alert-show-title">${esc(t.name)}</div>
         <div class="alert-text">${alertTxt}</div>
       </div>
       ${dateStr ? `<div class="alert-date">${dateStr}</div>` : ''}
+      <button class="alert-dismiss" onclick="event.stopPropagation();snoozeLiveAlert(${t.id},'${type}',trackedShows.find(s=>s.tmdb_id===${t.id})?.tmdb)" title="Dismiss">✕</button>
     </div>`;
 }
 
