@@ -3935,7 +3935,14 @@ async function toggleEpisode(showId, seasonNum, epNum) {
   if (nowWatched) {
     logActivity('episode_watched', showId, { season: seasonNum, episode: epNum });
   }
-  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
+  // Only re-render the full tab if in grid view or no rows are inline-expanded.
+  // In list view with expanded rows, the season accordions already updated themselves
+  // and a full renderTab() would collapse everything.
+  refreshUpNextCache().then(() => {
+    if (currentTab === 'watching' && (currentView !== 'list' || expandedListRows.size === 0)) {
+      renderTab();
+    }
+  });
 }
 
 async function markSeason(showId, seasonNum, watched) {
@@ -3962,7 +3969,11 @@ async function markSeason(showId, seasonNum, watched) {
   loadSeasonsForDetail(tmdb, newProgress, getActiveSeasonsContainerId(showId));
   refreshShowProgressCache();
   if (watched) logActivity('season_watched', showId, { season: seasonNum });
-  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
+  refreshUpNextCache().then(() => {
+    if (currentTab === 'watching' && (currentView !== 'list' || expandedListRows.size === 0)) {
+      renderTab();
+    }
+  });
   toast(watched ? `Season ${seasonNum} marked as watched` : `Season ${seasonNum} unmarked`);
 }
 
