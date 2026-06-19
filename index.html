@@ -3022,6 +3022,18 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, c
 
     <p class="detail-overview">${esc(tmdb.overview || 'No overview available.')}</p>
 
+    ${isTracked ? `<div class="seasons-section" id="seasons-section-${tmdb.id}">
+      <div class="seasons-header">
+        <span class="seasons-label">📋 Seasons & Episodes</span>
+        <button class="mark-season-btn" style="font-size:0.78rem;" onclick="toggleHideWatchedSeasons(${tmdb.id})" id="hide-watched-btn-${tmdb.id}">
+          ${hideWatchedSeasonsMap[tmdb.id] === false ? '🙈 Hide Watched Seasons' : '👁 Show Watched Seasons'}
+        </button>
+      </div>
+      <div id="seasons-accordions">
+        <div style="display:flex;justify-content:center;padding:1rem;"><div class="spinner"></div></div>
+      </div>
+    </div>` : ''}
+
     <div style="margin-bottom:1.25rem;">
       <div class="seasons-label" style="margin-bottom:0.75rem;">🎞️ Trailer</div>
       ${trailerHtml}
@@ -3034,18 +3046,6 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, c
 
     ${castHtml}
     ${crewHtml}
-
-    ${isTracked ? `<div class="seasons-section" id="seasons-section-${tmdb.id}">
-      <div class="seasons-header">
-        <span class="seasons-label">📋 Seasons & Episodes</span>
-        <button class="mark-season-btn" style="font-size:0.78rem;" onclick="toggleHideWatchedSeasons(${tmdb.id})" id="hide-watched-btn-${tmdb.id}">
-          ${hideWatchedSeasonsMap[tmdb.id] ? '👁 Show Watched Seasons' : '🙈 Hide Watched Seasons'}
-        </button>
-      </div>
-      <div id="seasons-accordions">
-        <div style="display:flex;justify-content:center;padding:1rem;"><div class="spinner"></div></div>
-      </div>
-    </div>` : ''}
 
     ${simItems ? `<div style="margin-bottom:1.5rem;">
       <div class="seasons-label" style="margin-bottom:0.75rem;">🎬 You Might Also Like</div>
@@ -3064,7 +3064,8 @@ async function loadSeasonsForDetail(tmdb, epProgress) {
 
   const seasons = (tmdb.seasons || []).filter(s => s.season_number > 0);
   const today = new Date();
-  const hideWatched = !!hideWatchedSeasonsMap[tmdb.id];
+  // Default is HIDDEN (true) unless the user has explicitly toggled it off (false)
+  const hideWatched = hideWatchedSeasonsMap[tmdb.id] !== false;
 
   let html = '';
   let hiddenCount = 0;
@@ -3136,9 +3137,11 @@ async function loadSeasonsForDetail(tmdb, epProgress) {
 }
 
 function toggleHideWatchedSeasons(showId) {
-  hideWatchedSeasonsMap[showId] = !hideWatchedSeasonsMap[showId];
+  // Default is hidden (true); toggle to opposite of current state
+  const currentlyHidden = hideWatchedSeasonsMap[showId] !== false;
+  hideWatchedSeasonsMap[showId] = !currentlyHidden;
   const btn = document.getElementById(`hide-watched-btn-${showId}`);
-  if (btn) btn.textContent = hideWatchedSeasonsMap[showId] ? '👁 Show Watched Seasons' : '🙈 Hide Watched Seasons';
+  if (btn) btn.textContent = hideWatchedSeasonsMap[showId] === false ? '🙈 Hide Watched Seasons' : '👁 Show Watched Seasons';
 
   const show = trackedShows.find(s => s.tmdb_id === showId);
   if (show?.tmdb) {
