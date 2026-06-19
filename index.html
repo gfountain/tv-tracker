@@ -2290,10 +2290,12 @@ async function addMovie(tmdbId, status = 'to_watch', btn = null) {
       .upsert({ tmdb_id: tmdbId, status, user_id: currentUser.id }, { onConflict: 'user_id,tmdb_id' });
     if (error) throw error;
     await loadAllMovies();
-    calendarEpisodeCache = {}; // bust cache so calendar picks up new movie
+    calendarEpisodeCache = {};
     renderTab();
     toast('Movie added ✓');
     if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
+    const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
+    logActivity('movie_added', tmdbId, { showName: movie?.tmdb?.title, meta: { status } });
   } catch (e) {
     toast('Failed to add movie', true);
     if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
@@ -2308,14 +2310,19 @@ async function toggleMovieWatched(tmdbId, currentlyWatched) {
     .eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
   const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
   if (movie) { movie.status = newStatus; movie.watched_at = watchedAt; }
-  // Refresh detail panel to update button state
+  if (newStatus === 'watched') {
+    logActivity('movie_watched', tmdbId, { showName: movie?.tmdb?.title });
+  }
   openMovieDetailById(tmdbId);
   renderTab();
   toast(newStatus === 'watched' ? '✓ Marked as watched' : 'Moved back to To Watch');
 }
 
 async function removeMovie(tmdbId) {
+  const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
+  const movieName = movie?.tmdb?.title;
   await db.from('tracked_movies').delete().eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
+  logActivity('movie_removed', tmdbId, { showName: movieName });
   trackedMovies = trackedMovies.filter(m => m.tmdb_id !== tmdbId);
   closeDetailPanel();
   renderTab();
@@ -2999,12 +3006,16 @@ function renderFeedContent(container) {
     episode_watched: { icon: '✓',  color: 'var(--amber)' },
     season_watched:  { icon: '🏆', color: 'var(--amber)' },
     show_completed:  { icon: '🎉', color: 'var(--green)' },
+    movie_added:     { icon: '🎬', color: 'var(--blue)' },
+    movie_watched:   { icon: '🍿', color: 'var(--green)' },
+    movie_removed:   { icon: '🗑️', color: 'var(--text-muted)' },
   };
 
   function feedText(item) {
-    const name = item.show_name ? `<strong>${esc(item.show_name)}</strong>` : 'a show';
+    const isMovie = item.activity_type.startsWith('movie_');
+    const name = item.show_name ? `<strong>${esc(item.show_name)}</strong>` : (isMovie ? 'a movie' : 'a show');
     switch (item.activity_type) {
-      case 'show_added':      return `Added ${name} to your list`;
+      case 'show_added':      return `Added ${name} to your watchlist`;
       case 'show_removed':    return `Removed ${name}`;
       case 'show_completed':  return `Completed ${name} 🎉`;
       case 'status_changed': {
@@ -3016,6 +3027,12 @@ function renderFeedContent(container) {
         return `Watched ${name} S${item.season_number}E${item.episode_number}${item.episode_name ? ` — ${esc(item.episode_name)}` : ''}`;
       case 'season_watched':
         return `Finished Season ${item.season_number} of ${name}`;
+      case 'movie_added': {
+        const dest = item.meta?.status === 'watched' ? 'Watched' : 'To Watch';
+        return `Added ${name} to ${dest}`;
+      }
+      case 'movie_watched':   return `Watched ${name} 🍿`;
+      case 'movie_removed':   return `Removed ${name}`;
       default: return `Activity on ${name}`;
     }
   }
@@ -3030,15 +3047,25 @@ function renderFeedContent(container) {
     return;
   }
 
-  const show = trackedShows;
   const rows = feedItems.map(item => {
     const cfg = typeConfig[item.activity_type] || { icon: '•', color: 'var(--text-muted)' };
-    const trackedShow = show.find(s => s.tmdb_id === item.tmdb_show_id);
-    const poster = trackedShow?.tmdb?.poster_path
-      ? `<img class="feed-poster" src="${TMDB_IMG}/w92${trackedShow.tmdb.poster_path}" alt="" />`
+    const isMovie = item.activity_type.startsWith('movie_');
+
+    // Look up poster from the appropriate cache
+    const trackedItem = isMovie
+      ? trackedMovies.find(m => m.tmdb_id === item.tmdb_show_id)
+      : trackedShows.find(s => s.tmdb_id === item.tmdb_show_id);
+    const posterPath = trackedItem?.tmdb?.poster_path || (isMovie ? trackedItem?.tmdb?.poster_path : null);
+
+    const poster = posterPath
+      ? `<img class="feed-poster" src="${TMDB_IMG}/w92${posterPath}" alt="" />`
       : `<div class="feed-icon" style="background:${cfg.color}20;border-color:${cfg.color}40;color:${cfg.color};">${cfg.icon}</div>`;
 
-    return `<div class="feed-item" onclick="openDetailById(${item.tmdb_show_id})">
+    const clickFn = isMovie
+      ? `openMovieDetailById(${item.tmdb_show_id})`
+      : `openDetailById(${item.tmdb_show_id})`;
+
+    return `<div class="feed-item" onclick="${clickFn}">
       ${poster}
       <div class="feed-content">
         <div class="feed-text">${feedText(item)}</div>
@@ -3458,6 +3485,7 @@ async function updateMovieStatus(tmdbId, status) {
   await db.from('tracked_movies').update({ status, watched_at: watchedAt }).eq('tmdb_id', tmdbId).eq('user_id', currentUser.id);
   const movie = trackedMovies.find(m => m.tmdb_id === tmdbId);
   if (movie) { movie.status = status; movie.watched_at = watchedAt; }
+  if (status === 'watched') logActivity('movie_watched', tmdbId, { showName: movie?.tmdb?.title });
   openMovieDetailById(tmdbId);
   renderTab();
   toast(`Moved to ${status === 'to_watch' ? 'To Watch' : 'Watched'}`);
