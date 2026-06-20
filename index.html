@@ -2467,26 +2467,35 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
         ? await tmdbTVExternalIds(tmdbId)
         : await tmdbMovieExternalIds(tmdbId);
       imdbId = extIds?.imdb_id || null;
-    } catch (e) { /* continue without IMDb ID */ }
+      console.log('[Ratings] IMDb ID from TMDB:', imdbId);
+    } catch (e) {
+      console.warn('[Ratings] Could not fetch external IDs:', e);
+    }
 
-    // Step 2: Fetch OMDb data using IMDb ID or title+year fallback
+    // Step 2: Fetch OMDb data — free tier uses standard Ratings array for RT
     let omdb = null;
     if (imdbId) {
       if (omdbCache[imdbId]) {
         omdb = omdbCache[imdbId];
+        console.log('[Ratings] Using cached OMDb data for', imdbId);
       } else {
         try {
-          const res = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_KEY}&tomatoes=true`);
+          const res = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_KEY}`);
           const data = await res.json();
+          console.log('[Ratings] OMDb response by IMDb ID:', data);
           if (data.Response === 'True') {
             omdbCache[imdbId] = data;
             omdb = data;
+          } else {
+            console.warn('[Ratings] OMDb returned error:', data.Error);
           }
-        } catch (e) { /* omdb unavailable */ }
+        } catch (e) {
+          console.warn('[Ratings] OMDb fetch failed:', e);
+        }
       }
     }
 
-    // Fallback: search by title if no IMDb ID
+    // Fallback: search by title+year if no IMDb ID or IMDb ID lookup failed
     if (!omdb && title) {
       const cacheKey = `title:${title}:${year}`;
       if (omdbCache[cacheKey]) {
@@ -2494,13 +2503,20 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
       } else {
         try {
           const type = mediaType === 'tv' ? 'series' : 'movie';
-          const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&y=${year||''}&type=${type}&apikey=${OMDB_KEY}&tomatoes=true`);
+          const url = `https://www.omdbapi.com/?t=${encodeURIComponent(title)}&y=${year||''}&type=${type}&apikey=${OMDB_KEY}`;
+          console.log('[Ratings] OMDb fallback URL:', url);
+          const res = await fetch(url);
           const data = await res.json();
+          console.log('[Ratings] OMDb fallback response:', data);
           if (data.Response === 'True') {
             omdbCache[cacheKey] = data;
             omdb = data;
+          } else {
+            console.warn('[Ratings] OMDb fallback error:', data.Error);
           }
-        } catch (e) { /* omdb unavailable */ }
+        } catch (e) {
+          console.warn('[Ratings] OMDb fallback fetch failed:', e);
+        }
       }
     }
 
@@ -2511,25 +2527,22 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
 }
 
 function renderRatingsPanel(body, omdb, imdbId, title, year, mediaType) {
-  // Parse OMDb ratings
+  // Parse OMDb ratings from the standard Ratings array (free tier)
   const ratings = omdb?.Ratings || [];
+  console.log('[Ratings] Parsed ratings array:', ratings);
   const rtCritics = ratings.find(r => r.Source === 'Rotten Tomatoes');
   const metacritic = ratings.find(r => r.Source === 'Metacritic');
+  // IMDb rating is available both in Ratings array and as top-level imdbRating
   const imdbRating = omdb?.imdbRating && omdb.imdbRating !== 'N/A' ? omdb.imdbRating : null;
   const imdbVotes = omdb?.imdbVotes && omdb.imdbVotes !== 'N/A' ? omdb.imdbVotes : null;
-  const rtAudience = omdb?.tomatoUserMeter && omdb.tomatoUserMeter !== 'N/A' ? omdb.tomatoUserMeter + '%' : null;
-  const consensus = omdb?.tomatoConsensus && omdb.tomatoConsensus !== 'N/A' ? omdb.tomatoConsensus : null;
+  // RT Audience Score is Patreon-only on OMDb — not available on free tier
+  const rtAudience = null;
 
   // RT Tomatometer
   const rtPct = rtCritics ? parseInt(rtCritics.Value) : null;
   const rtScoreClass = rtPct === null ? 'na' : rtPct >= 75 ? 'fresh' : rtPct >= 60 ? 'certified' : 'rotten';
   const rtIcon = rtPct === null ? '❓' : rtPct >= 60 ? '🍅' : '🤢';
-  const rtLabel = rtPct === null ? 'No Score' : rtPct >= 75 ? 'Fresh' : rtPct >= 60 ? 'Rotten' : 'Rotten';
-
-  // RT Audience
-  const audiencePct = rtAudience ? parseInt(rtAudience) : null;
-  const audienceClass = audiencePct === null ? 'na' : audiencePct >= 60 ? 'audience-up' : 'audience-down';
-  const audienceIcon = audiencePct === null ? '❓' : audiencePct >= 60 ? '🍿' : '💔';
+  const rtLabel = rtPct === null ? 'No Score' : rtPct >= 75 ? 'Certified Fresh' : rtPct >= 60 ? 'Fresh' : 'Rotten';
 
   // Metacritic
   const mcScore = metacritic ? parseInt(metacritic.Value) : null;
@@ -2561,14 +2574,13 @@ function renderRatingsPanel(body, omdb, imdbId, title, year, mediaType) {
         <div class="rating-sublabel" style="color:var(--amber);font-size:0.65rem;">↗ Open on RT</div>
       </a>
 
-      <!-- RT Audience -->
-      <a class="rating-card ${audiencePct === null ? 'not-clickable' : ''}" onclick="${audiencePct !== null ? `window.open('${rtSearchUrl}','_blank')` : ''}" title="${audiencePct !== null ? 'View on Rotten Tomatoes' : 'No audience score available'}">
+      <!-- RT Audience — not available on OMDb free tier -->
+      <div class="rating-card not-clickable" style="opacity:0.6;" title="RT Audience Score requires OMDb Patreon tier">
         <div class="rating-source">RT Audience</div>
-        <div class="rating-icon">${audienceIcon}</div>
-        <div class="rating-score ${audienceClass}">${rtAudience || 'N/A'}</div>
-        <div class="rating-sublabel">Audience Score</div>
-        ${audiencePct !== null ? `<div class="rating-sublabel" style="color:var(--amber);font-size:0.65rem;">↗ Open on RT</div>` : ''}
-      </a>
+        <div class="rating-icon">👥</div>
+        <div class="rating-score na">N/A</div>
+        <div class="rating-sublabel">Not on free tier</div>
+      </div>
 
       <!-- Metacritic -->
       <div class="rating-card not-clickable">
