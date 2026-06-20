@@ -643,6 +643,22 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .up-next-mark-btn {
+      margin-top: 0.5rem;
+      background: rgba(76,175,130,0.12);
+      border: 1px solid rgba(76,175,130,0.3);
+      color: var(--green);
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.3rem 0.6rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: 100%;
+    }
+    .up-next-mark-btn:hover { background: var(--green); color: #fff; }
+    .up-next-mark-btn:disabled { opacity: 0.5; cursor: default; }
     .up-next-empty {
       font-size: 0.85rem;
       color: var(--text-muted);
@@ -2035,6 +2051,7 @@ let feedOffset = 0;
 const FEED_PAGE_SIZE = 30;
 let discoverList = null;    // currently selected discover list config
 let discoverCache = {};     // { 'key': [...results] } keyed by list id
+let discoverGenreFilter = null; // genre_id to filter discover results by
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -2298,6 +2315,31 @@ function populateDiscoverMenu() {
   const sectionLabels = { tv: '📺 TV Shows', movies: '🎬 Movies' };
   let html = '';
 
+  // New Season Radar — upcoming season premieres from tracked shows
+  const upcomingSeasons = trackedShows
+    .filter(s => s.tmdb?.next_episode_to_air?.episode_number === 1 && s.tmdb?.next_episode_to_air?.air_date)
+    .map(s => ({
+      showId: s.tmdb_id,
+      showName: s.tmdb.name,
+      season: s.tmdb.next_episode_to_air.season_number,
+      airDate: s.tmdb.next_episode_to_air.air_date
+    }))
+    .sort((a, b) => new Date(a.airDate) - new Date(b.airDate))
+    .slice(0, 5);
+
+  const isRadarActive = discoverList?.id === 'radar';
+  html += `<div class="discover-section-label">🎯 Your Shows</div>`;
+  html += `
+    <div class="discover-item ${isRadarActive ? 'active' : ''}" onclick="selectDiscoverList('radar')">
+      <span class="discover-item-icon">📡</span>
+      <div class="discover-item-text">
+        <div class="discover-item-name">New Season Radar</div>
+        <div class="discover-item-desc">${upcomingSeasons.length > 0 ? `${upcomingSeasons.length} season${upcomingSeasons.length !== 1 ? 's' : ''} coming up` : 'Upcoming premieres from your list'}</div>
+      </div>
+    </div>`;
+
+  html += '<div class="discover-divider"></div>';
+
   DISCOVER_LISTS.forEach((section, si) => {
     if (si > 0) html += '<div class="discover-divider"></div>';
     html += `<div class="discover-section-label">${sectionLabels[section.section]}</div>`;
@@ -2342,19 +2384,28 @@ function closeDiscoverMenu() {
 }
 
 async function selectDiscoverList(listId) {
-  const allItems = DISCOVER_LISTS.flatMap(s => s.items);
-  const item = allItems.find(i => i.id === listId);
-  if (!item) return;
+  discoverGenreFilter = null; // reset genre filter on list change
 
-  discoverList = item;
+  if (listId === 'radar') {
+    discoverList = { id: 'radar', label: 'New Season Radar', icon: '📡', type: 'radar' };
+  } else {
+    const allItems = DISCOVER_LISTS.flatMap(s => s.items);
+    const item = allItems.find(i => i.id === listId);
+    if (!item) return;
+    discoverList = item;
+  }
+
   currentTab = 'discover';
-
-  // Mark discover btn active, deactivate all regular tab buttons
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   const dbtn = document.getElementById('discover-btn');
   if (dbtn) dbtn.classList.add('active');
 
   closeDiscoverMenu();
+  renderTab();
+}
+
+function setDiscoverGenre(genreId) {
+  discoverGenreFilter = discoverGenreFilter === genreId ? null : genreId;
   renderTab();
 }
 
@@ -2365,6 +2416,61 @@ async function renderDiscoverResults(container) {
     return;
   }
 
+  // ── New Season Radar ────────────────────────────────────────────────────────
+  if (discoverList.id === 'radar') {
+    const today = new Date();
+    const upcoming = trackedShows
+      .filter(s => s.tmdb?.next_episode_to_air?.air_date)
+      .map(s => ({
+        showId: s.tmdb_id,
+        showName: s.tmdb.name,
+        poster: s.tmdb.poster_path,
+        season: s.tmdb.next_episode_to_air.season_number,
+        episode: s.tmdb.next_episode_to_air.episode_number,
+        airDate: s.tmdb.next_episode_to_air.air_date,
+        epName: s.tmdb.next_episode_to_air.name,
+        status: s.status
+      }))
+      .filter(i => new Date(i.airDate) >= today)
+      .sort((a, b) => new Date(a.airDate) - new Date(b.airDate));
+
+    const rows = upcoming.length ? upcoming.map(item => {
+      const diff = Math.ceil((new Date(item.airDate) - today) / 86400000);
+      const countdown = diff === 0 ? 'Today! 🎬' : diff === 1 ? 'Tomorrow' : `in ${diff} days`;
+      const isSeasonPremiere = item.episode === 1;
+      const poster = item.poster
+        ? `<img class="discover-poster" src="${TMDB_IMG}/w92${item.poster}" alt="" onclick="openDetailById(${item.showId})" />`
+        : `<div class="discover-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
+      return `
+        <div class="discover-row">
+          ${poster}
+          <div class="discover-info">
+            <div class="discover-title" onclick="openDetailById(${item.showId})">${esc(item.showName)}</div>
+            <div class="discover-meta">
+              S${item.season}E${item.episode}${isSeasonPremiere ? ' — Season Premiere 🆕' : ''}
+              ${item.epName ? ` · "${esc(item.epName)}"` : ''}
+            </div>
+            <div style="font-size:0.78rem;color:var(--amber);font-weight:600;margin-top:0.2rem;">${formatDate(item.airDate)} · ${countdown}</div>
+          </div>
+          <div class="discover-actions">
+            <button class="discover-detail-btn" onclick="openDetailById(${item.showId})">Details</button>
+          </div>
+        </div>`;
+    }).join('') : '<div class="empty-state" style="padding:2rem;"><div class="icon">📡</div><h3>All clear</h3><p>No upcoming episode dates found for your tracked shows. Check back after new episodes are announced.</p></div>';
+
+    container.innerHTML = `
+      <div class="section-header">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <span style="font-size:1.5rem;">📡</span>
+          <span class="section-title">New Season Radar</span>
+          <span style="font-size:0.78rem;color:var(--text-muted);background:var(--bg3);padding:0.2rem 0.6rem;border-radius:50px;">${upcoming.length} upcoming</span>
+        </div>
+      </div>
+      <div class="discover-list">${rows}</div>`;
+    return;
+  }
+
+  // ── Regular TMDB chart list ─────────────────────────────────────────────────
   container.innerHTML = `
     <div class="section-header">
       <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -2375,7 +2481,6 @@ async function renderDiscoverResults(container) {
     </div>
     <div style="display:flex;justify-content:center;padding:2rem;"><div class="spinner"></div></div>`;
 
-  // Use cache if available
   let results = discoverCache[discoverList.id];
   if (!results) {
     try {
@@ -2390,27 +2495,59 @@ async function renderDiscoverResults(container) {
 
   const isTV = discoverList.type === 'tv';
 
-  const rows = results.map((item, idx) => {
+  // Build genre chip list from results
+  const genreMap = new Map();
+  results.forEach(item => {
+    (item.genre_ids || []).forEach(gid => {
+      if (!genreMap.has(gid)) genreMap.set(gid, 0);
+      genreMap.set(gid, genreMap.get(gid) + 1);
+    });
+  });
+
+  // TMDB genre IDs → names (common ones hard-coded to avoid extra API call)
+  const GENRE_NAMES = {
+    28:'Action',10759:'Action & Adventure',12:'Adventure',16:'Animation',
+    35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',
+    14:'Fantasy',36:'History',27:'Horror',10762:'Kids',10402:'Music',
+    9648:'Mystery',10763:'News',10764:'Reality',10765:'Sci-Fi & Fantasy',
+    10766:'Soap',10767:'Talk',10768:'War & Politics',37:'Western',
+    878:'Science Fiction',53:'Thriller',10752:'War',10770:'TV Movie',
+    10749:'Romance'
+  };
+
+  const genreChips = Array.from(genreMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([gid]) => {
+      const name = GENRE_NAMES[gid] || `Genre ${gid}`;
+      const isActive = discoverGenreFilter === gid;
+      return `<button class="filter-chip ${isActive ? 'active' : ''}" onclick="setDiscoverGenre(${gid})">${esc(name)}</button>`;
+    }).join('');
+
+  // Apply genre filter
+  let filtered = discoverGenreFilter
+    ? results.filter(item => (item.genre_ids || []).includes(discoverGenreFilter))
+    : results;
+
+  // Re-rank after filtering
+  const rows = filtered.map((item, idx) => {
     const tmdbId = item.id;
     const title = isTV ? item.name : item.title;
     const year = (isTV ? item.first_air_date : item.release_date)?.slice(0, 4) || '—';
     const rating = item.vote_average?.toFixed(1) || '?';
-    const genres = item.genre_ids?.slice(0,2).join('·') || '';
     const poster = item.poster_path
       ? `<img class="discover-poster" src="${TMDB_IMG}/w92${item.poster_path}" alt="" onclick="event.stopPropagation();${isTV ? `openDetailById(${tmdbId})` : `openMovieDetailById(${tmdbId})`}" />`
       : `<div class="discover-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">${isTV ? '📺' : '🎬'}</div>`;
 
-    // Check if already tracked
     const trackedTV = isTV ? trackedShows.find(s => s.tmdb_id === tmdbId) : null;
     const trackedMov = !isTV ? trackedMovies.find(m => m.tmdb_id === tmdbId) : null;
-    const tracked = trackedTV || trackedMov;
     const trackedLabel = trackedTV
       ? { watching: '✓ Watching', watchlist: '✓ Watchlist', completed: '✓ Completed' }[trackedTV.status] || '✓ Tracked'
       : trackedMov
       ? (trackedMov.status === 'watched' ? '✓ Watched' : '✓ To Watch')
       : null;
 
-    const addBtn = tracked
+    const addBtn = trackedLabel
       ? `<span class="discover-add-btn tracked">${esc(trackedLabel)}</span>`
       : isTV
       ? `<button class="discover-add-btn" onclick="event.stopPropagation();addShow(${tmdbId},'watching',this)">+ Add</button>`
@@ -2445,7 +2582,11 @@ async function renderDiscoverResults(container) {
         <span style="font-size:0.78rem;color:var(--text-muted);background:var(--bg3);padding:0.2rem 0.6rem;border-radius:50px;">${discoverList.type === 'tv' ? 'TV Shows' : 'Movies'}</span>
       </div>
     </div>
-    <div class="discover-list">${rows}</div>`;
+    ${genreChips ? `<div class="filters-bar" style="margin-bottom:1rem;">
+      <button class="filter-chip ${!discoverGenreFilter ? 'active' : ''}" onclick="setDiscoverGenre(null)">All Genres</button>
+      ${genreChips}
+    </div>` : ''}
+    ${filtered.length ? `<div class="discover-list">${rows}</div>` : `<div class="empty-state"><div class="icon">🎭</div><h3>No results</h3><p>No ${isTV ? 'shows' : 'movies'} match that genre filter in this list.</p></div>`}`;
 }
 
 // Close discover menu when clicking outside
@@ -2594,18 +2735,40 @@ function renderUpNextWidget() {
       </div>
       <div class="up-next-scroll">
         ${upNextCache.map(item => `
-          <div class="up-next-card" onclick="openDetailById(${item.showId})">
-            ${item.backdrop
-              ? `<img class="up-next-backdrop" src="${TMDB_IMG}/w300${item.backdrop}" alt="" />`
-              : `<div class="up-next-backdrop-placeholder">🎬</div>`}
+          <div class="up-next-card">
+            <div onclick="openDetailById(${item.showId})" style="cursor:pointer;">
+              ${item.backdrop
+                ? `<img class="up-next-backdrop" src="${TMDB_IMG}/w300${item.backdrop}" alt="" />`
+                : `<div class="up-next-backdrop-placeholder">🎬</div>`}
+            </div>
             <div class="up-next-body">
-              <div class="up-next-show-title">${esc(item.showName)}</div>
+              <div class="up-next-show-title" onclick="openDetailById(${item.showId})" style="cursor:pointer;">${esc(item.showName)}</div>
               <div class="up-next-ep-info">S${item.season}E${item.episode}</div>
               <div class="up-next-ep-name">${esc(item.name)}</div>
+              <button class="up-next-mark-btn" onclick="markUpNextWatched(${item.showId},${item.season},${item.episode},this)" title="Mark as Watched">✓ Mark as Watched</button>
             </div>
           </div>`).join('')}
       </div>
     </div>`;
+}
+
+async function markUpNextWatched(showId, seasonNum, epNum, btn) {
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  await db.from('episode_progress').upsert({
+    tmdb_show_id: showId,
+    season_number: seasonNum,
+    episode_number: epNum,
+    watched: true,
+    watched_at: new Date().toISOString(),
+    user_id: currentUser.id
+  }, { onConflict: 'user_id,tmdb_show_id,season_number,episode_number' });
+  logActivity('episode_watched', showId, { season: seasonNum, episode: epNum });
+  refreshShowProgressCache();
+  // Rebuild Up Next — this show will advance to its next unwatched episode
+  await refreshUpNextCache();
+  // Re-render just the Watching tab content if we're on it
+  if (currentTab === 'watching') renderTab();
+  toast('Episode marked as watched ✓');
 }
 
 // ─── ALERTS ENGINE ────────────────────────────────────────────────────────────
@@ -3905,25 +4068,48 @@ async function renderMovieStats(container) {
 }
 
 // ─── STATS TAB ────────────────────────────────────────────────────────────────
+let statsYearFilter = 'all'; // 'all' | 'year'
+
 async function renderStats(container) {
   container.innerHTML = `
-    <div class="section-header"><span class="section-title">Your Watch Stats</span></div>
+    <div class="section-header">
+      <span class="section-title">Your Watch Stats</span>
+      <div style="display:flex;gap:0.4rem;">
+        <button class="filter-chip ${statsYearFilter==='all'?'active':''}" onclick="setStatsYear('all')">All Time</button>
+        <button class="filter-chip ${statsYearFilter==='year'?'active':''}" onclick="setStatsYear('year')">This Year</button>
+      </div>
+    </div>
     <div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>`;
 
-  const stats = await computeStats();
+  const stats = await computeStats(statsYearFilter);
   statsCache = stats;
   renderStatsContent(container, stats);
 }
 
-async function computeStats() {
-  const showIds = trackedShows.filter(s => s.tmdb).map(s => s.tmdb_id);
+function setStatsYear(filter) {
+  statsYearFilter = filter;
+  statsCache = null;
+  renderStats(document.getElementById('main-content'));
+}
 
-  const { data: allWatched } = showIds.length
-    ? await db.from('episode_progress').select('*').in('tmdb_show_id', showIds).eq('watched', true)
-    : { data: [] };
+async function computeStats(yearFilter = 'all') {
+  const showIds = trackedShows.filter(s => s.tmdb).map(s => s.tmdb_id);
+  const currentYear = new Date().getFullYear();
+
+  let query = showIds.length
+    ? db.from('episode_progress').select('*').in('tmdb_show_id', showIds).eq('watched', true)
+    : null;
+
+  const { data: allWatched } = query ? await query : { data: [] };
+
+  // Apply year filter
+  const filtered = (allWatched || []).filter(p => {
+    if (yearFilter === 'all' || !p.watched_at) return true;
+    return new Date(p.watched_at).getFullYear() === currentYear;
+  });
 
   const watchedByShow = {};
-  (allWatched || []).forEach(p => {
+  filtered.forEach(p => {
     (watchedByShow[p.tmdb_show_id] = watchedByShow[p.tmdb_show_id] || []).push(p);
   });
 
@@ -3941,10 +4127,9 @@ async function computeStats() {
     const epCount = watchedEps.length;
     totalEpisodesWatched += epCount;
 
-    // Runtime: TMDB gives episode_run_time as an array (sometimes per-season variation); average it.
     const avgRuntime = (t.episode_run_time && t.episode_run_time.length)
       ? t.episode_run_time.reduce((a,b) => a+b, 0) / t.episode_run_time.length
-      : 45; // reasonable fallback for shows missing runtime data
+      : 45;
     totalMinutesWatched += epCount * avgRuntime;
 
     (t.genres || []).forEach(g => {
@@ -3952,9 +4137,7 @@ async function computeStats() {
     });
 
     if (t.vote_average) { ratingSum += t.vote_average; ratingCount++; }
-
     if (epCount > 0) showsWithEpisodeCounts.push({ id: t.id, name: t.name, poster: t.poster_path, count: epCount });
-
     if (t.number_of_episodes && (!longestShow || t.number_of_episodes > longestShow.episodes)) {
       longestShow = { name: t.name, episodes: t.number_of_episodes, seasons: t.number_of_seasons };
     }
@@ -3963,13 +4146,65 @@ async function computeStats() {
   const statusCounts = { watching: 0, watchlist: 0, completed: 0 };
   trackedShows.forEach(s => { if (statusCounts[s.status] != null) statusCounts[s.status]++; });
 
-  const topGenres = Object.entries(genreCounts)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, count]) => ({ name, count }));
-  const maxGenreCount = topGenres[0]?.count || 1;
+  const topGenres = Object.entries(genreCounts).sort((a,b) => b[1]-a[1]).slice(0,6).map(([name,count]) => ({name,count}));
+  const topShows = showsWithEpisodeCounts.sort((a,b) => b.count-a.count).slice(0,5);
 
-  const topShows = showsWithEpisodeCounts.sort((a,b) => b.count - a.count).slice(0, 5);
+  // ── Pace: episodes per week for the last 12 weeks ─────────────────────────
+  const weeklyPace = [];
+  const now = new Date();
+  for (let w = 11; w >= 0; w--) {
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - (w + 1) * 7);
+    weekStart.setHours(0,0,0,0);
+    const weekEnd = new Date(now);
+    weekEnd.setDate(now.getDate() - w * 7);
+    weekEnd.setHours(23,59,59,999);
+    const count = filtered.filter(p => {
+      if (!p.watched_at) return false;
+      const d = new Date(p.watched_at);
+      return d >= weekStart && d <= weekEnd;
+    }).length;
+    const label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    weeklyPace.push({ label, count, weekStart });
+  }
+  const maxPace = Math.max(...weeklyPace.map(w => w.count), 1);
+
+  // ── Day of week breakdown ──────────────────────────────────────────────────
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayCounts = [0,0,0,0,0,0,0];
+  filtered.forEach(p => {
+    if (p.watched_at) dayCounts[new Date(p.watched_at).getDay()]++;
+  });
+  const maxDay = Math.max(...dayCounts, 1);
+
+  // ── Binge streak: longest consecutive days with ≥1 episode watched ─────────
+  const watchDays = new Set(
+    filtered.filter(p => p.watched_at).map(p => new Date(p.watched_at).toISOString().slice(0,10))
+  );
+  const sortedDays = Array.from(watchDays).sort();
+  let maxStreak = 0, curStreak = 0;
+  for (let i = 0; i < sortedDays.length; i++) {
+    if (i === 0) { curStreak = 1; }
+    else {
+      const prev = new Date(sortedDays[i-1]);
+      const curr = new Date(sortedDays[i]);
+      const diffDays = (curr - prev) / 86400000;
+      curStreak = diffDays === 1 ? curStreak + 1 : 1;
+    }
+    maxStreak = Math.max(maxStreak, curStreak);
+  }
+
+  // Current streak
+  let currentStreak = 0;
+  const todayStr = now.toISOString().slice(0,10);
+  const yesterdayStr = new Date(now.getTime() - 86400000).toISOString().slice(0,10);
+  if (watchDays.has(todayStr) || watchDays.has(yesterdayStr)) {
+    let checkDate = watchDays.has(todayStr) ? new Date(todayStr) : new Date(yesterdayStr);
+    while (watchDays.has(checkDate.toISOString().slice(0,10))) {
+      currentStreak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+  }
 
   return {
     totalShowsTracked: trackedShows.length,
@@ -3979,18 +4214,61 @@ async function computeStats() {
     avgRating: ratingCount ? (ratingSum / ratingCount) : null,
     statusCounts,
     topGenres,
-    maxGenreCount,
+    maxGenreCount: topGenres[0]?.count || 1,
     topShows,
-    longestShow
+    longestShow,
+    weeklyPace,
+    maxPace,
+    dayCounts,
+    dayNames,
+    maxDay,
+    maxStreak,
+    currentStreak
   };
 }
 
 function renderStatsContent(container, s) {
   const days = s.totalDaysWatched;
-  const daysDisplay = days >= 1 ? `${days.toFixed(1)} days` : `${s.totalHoursWatched} hrs`;
+  const daysDisplay = days >= 1 ? `${days.toFixed(1)}` : `${s.totalHoursWatched}`;
+
+  // Pace chart: vertical bars
+  const paceChart = s.weeklyPace.map((w, i) => {
+    const pct = s.maxPace > 0 ? Math.round((w.count / s.maxPace) * 100) : 0;
+    const isThisWeek = i === s.weeklyPace.length - 1;
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;flex:1;">
+        <div style="font-size:0.68rem;color:var(--text-muted);">${w.count || ''}</div>
+        <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+          <div style="width:100%;background:${isThisWeek ? 'var(--amber)' : 'rgba(245,166,35,0.3)'};border-radius:4px 4px 0 0;height:${Math.max(pct, w.count > 0 ? 4 : 0)}%;min-height:${w.count > 0 ? '4px' : '0'};transition:height 0.3s;"></div>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-muted);white-space:nowrap;transform:rotate(-45deg);transform-origin:center;margin-top:0.2rem;">${w.label}</div>
+      </div>`;
+  }).join('');
+
+  // Day of week chart
+  const dayChart = s.dayNames.map((d, i) => {
+    const pct = s.maxDay > 0 ? Math.round((s.dayCounts[i] / s.maxDay) * 100) : 0;
+    const isMax = s.dayCounts[i] === s.maxDay && s.maxDay > 0;
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;flex:1;">
+        <div style="font-size:0.68rem;color:var(--text-muted);">${s.dayCounts[i] || ''}</div>
+        <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+          <div style="width:100%;background:${isMax ? 'var(--amber)' : 'rgba(245,166,35,0.3)'};border-radius:4px 4px 0 0;height:${Math.max(pct, s.dayCounts[i] > 0 ? 6 : 0)}%;min-height:${s.dayCounts[i] > 0 ? '4px' : '0'};"></div>
+        </div>
+        <div style="font-size:0.72rem;color:${isMax ? 'var(--amber)' : 'var(--text-muted)'};">${d}</div>
+      </div>`;
+  }).join('');
+
+  const yearLabel = statsYearFilter === 'year' ? ` (${new Date().getFullYear()})` : '';
 
   container.innerHTML = `
-    <div class="section-header"><span class="section-title">Your Watch Stats</span></div>
+    <div class="section-header">
+      <span class="section-title">Your Watch Stats</span>
+      <div style="display:flex;gap:0.4rem;">
+        <button class="filter-chip ${statsYearFilter==='all'?'active':''}" onclick="setStatsYear('all')">All Time</button>
+        <button class="filter-chip ${statsYearFilter==='year'?'active':''}" onclick="setStatsYear('year')">This Year</button>
+      </div>
+    </div>
 
     <div class="stats-grid">
       <div class="stat-card">
@@ -3999,15 +4277,15 @@ function renderStatsContent(container, s) {
       </div>
       <div class="stat-card">
         <div class="stat-card-value">${s.totalEpisodesWatched.toLocaleString()}</div>
-        <div class="stat-card-label">Episodes Watched</div>
+        <div class="stat-card-label">Episodes Watched${yearLabel}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-value">${s.totalHoursWatched.toLocaleString()}</div>
-        <div class="stat-card-label">Hours Watched</div>
+        <div class="stat-card-label">Hours Watched${yearLabel}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card-value">${daysDisplay.split(' ')[0]}</div>
-        <div class="stat-card-label">${days >= 1 ? 'Days (24hr)' : 'Hours'} Watched</div>
+        <div class="stat-card-value">${daysDisplay}</div>
+        <div class="stat-card-label">${days >= 1 ? 'Days (24hr)' : 'Hours'} Watched${yearLabel}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-value">${s.avgRating ? s.avgRating.toFixed(1) : '—'}</div>
@@ -4017,11 +4295,34 @@ function renderStatsContent(container, s) {
         <div class="stat-card-value">${s.statusCounts.completed}</div>
         <div class="stat-card-label">Shows Completed</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${s.currentStreak}</div>
+        <div class="stat-card-label">Current Streak 🔥</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value">${s.maxStreak}</div>
+        <div class="stat-card-label">Best Streak${yearLabel}</div>
+      </div>
     </div>
+
+    ${s.totalEpisodesWatched > 0 ? `
+    <div class="stats-section">
+      <div class="seasons-label" style="margin-bottom:0.9rem;">📈 Watching Pace — Episodes per Week${yearLabel}</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding-bottom:28px;">
+        ${paceChart}
+      </div>
+    </div>
+
+    <div class="stats-section">
+      <div class="seasons-label" style="margin-bottom:0.9rem;">📅 Most Active Day of Week${yearLabel}</div>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:100px;padding-bottom:4px;">
+        ${dayChart}
+      </div>
+    </div>` : ''}
 
     ${s.topGenres.length ? `
     <div class="stats-section">
-      <div class="seasons-label" style="margin-bottom:0.9rem;">🎭 Genres by Episodes Watched</div>
+      <div class="seasons-label" style="margin-bottom:0.9rem;">🎭 Genres by Episodes Watched${yearLabel}</div>
       ${s.topGenres.map(g => `
         <div class="stats-bar-row">
           <div class="stats-bar-label">${esc(g.name)}</div>
@@ -4032,7 +4333,7 @@ function renderStatsContent(container, s) {
 
     ${s.topShows.length ? `
     <div class="stats-section">
-      <div class="seasons-label" style="margin-bottom:0.9rem;">🏆 Most-Watched Shows</div>
+      <div class="seasons-label" style="margin-bottom:0.9rem;">🏆 Most-Watched Shows${yearLabel}</div>
       ${s.topShows.map((show, i) => `
         <div class="stats-top-show" onclick="openDetailById(${show.id})">
           <div class="stats-rank">${i + 1}</div>
@@ -4470,13 +4771,18 @@ async function loadSeasonsForDetail(tmdb, epProgress, containerId = 'seasons-acc
         <div class="season-episodes" id="eps-${tmdb.id}-${s.season_number}">
           ${eps.map(e => {
             const isFuture = !e.air_date || new Date(e.air_date) > today;
-            const isWatched = epProgress.some(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
+            const watchedRecord = epProgress.find(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
+            const isWatched = !!watchedRecord;
+            const watchedAgo = isWatched && watchedRecord.watched_at ? timeAgo(watchedRecord.watched_at) : null;
             return `
               <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" onclick="${isFuture ? '' : `event.stopPropagation();toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
                 <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
                 <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
                 <span class="ep-name">${esc(e.name)}</span>
-                <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+                  <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
+                  ${watchedAgo ? `<span style="font-size:0.66rem;color:var(--green);margin-top:0.1rem;">watched ${watchedAgo}</span>` : ''}
+                </div>
               </div>`;
           }).join('')}
         </div>
