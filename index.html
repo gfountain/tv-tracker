@@ -1607,6 +1607,153 @@
     }
     .feed-load-more:hover { color: var(--amber); }
 
+    /* RATINGS PANEL */
+    .ratings-panel {
+      background: var(--bg2);
+      width: min(480px, 100vw);
+      height: 100vh;
+      overflow-y: auto;
+      border-left: 1px solid var(--border);
+      box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+    }
+    .ratings-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .ratings-panel-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+    .ratings-panel-body { padding: 1.5rem; flex: 1; }
+    .ratings-show-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      margin-bottom: 0.25rem;
+    }
+    .ratings-show-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1.75rem;
+    }
+
+    /* Score cards */
+    .ratings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin-bottom: 1.75rem;
+    }
+    .rating-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .rating-card:hover { border-color: var(--amber); transform: translateY(-2px); }
+    .rating-card.not-clickable { cursor: default; }
+    .rating-card.not-clickable:hover { transform: none; border-color: var(--border); }
+    .rating-source {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .rating-score {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      line-height: 1;
+    }
+    .rating-score.fresh { color: #FA320A; }
+    .rating-score.certified { color: #FB4F15; }
+    .rating-score.rotten { color: #7A7880; }
+    .rating-score.audience-up { color: #FAB70A; }
+    .rating-score.audience-down { color: #7A7880; }
+    .rating-score.mc-favorable { color: var(--green); }
+    .rating-score.mc-mixed { color: var(--amber); }
+    .rating-score.mc-unfavorable { color: var(--red); }
+    .rating-score.imdb { color: #F5C518; }
+    .rating-score.tmdb { color: var(--amber); }
+    .rating-score.na { color: var(--text-muted); font-size: 1.4rem; }
+    .rating-icon { font-size: 1.4rem; line-height: 1; }
+    .rating-sublabel {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+    .rating-votes {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    /* Consensus */
+    .ratings-consensus {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .ratings-consensus-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    .ratings-consensus-text {
+      font-size: 0.85rem;
+      color: var(--text-mid);
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    /* External links */
+    .ratings-links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .ratings-ext-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.15s;
+      cursor: pointer;
+    }
+    .ratings-ext-link:hover { border-color: var(--amber); }
+    .ratings-ext-link-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .ratings-ext-link-info { flex: 1; min-width: 0; }
+    .ratings-ext-link-name { font-size: 0.88rem; font-weight: 600; }
+    .ratings-ext-link-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .ratings-ext-link-arrow { color: var(--text-muted); font-size: 0.9rem; flex-shrink: 0; }
+
     /* HELP PANEL */
     .help-panel {
       background: var(--bg2);
@@ -1996,6 +2143,19 @@
   </div>
 </div>
 
+<!-- RATINGS PANEL -->
+<div class="detail-overlay" id="ratings-overlay" onclick="closeRatingsPanelOutside(event)">
+  <div class="ratings-panel" id="ratings-panel">
+    <div class="ratings-panel-header">
+      <span class="ratings-panel-title">⭐ Ratings & Reviews</span>
+      <button class="detail-close" style="position:static;" onclick="closeRatingsPanel()">✕</button>
+    </div>
+    <div class="ratings-panel-body" id="ratings-panel-body">
+      <div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- HELP PANEL -->
 <div class="detail-overlay" id="help-overlay" onclick="closeHelpPanel(event)">
   <div class="help-panel" id="help-panel">
@@ -2021,6 +2181,7 @@
 const SUPABASE_URL = 'https://batnmsaoqlwqwofvccol.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhdG5tc2FvcWx3cXdvZnZjY29sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NDU1NDMsImV4cCI6MjA5NzIyMTU0M30.vzHazXUkqQyCE77wu3WnCwuPPoZJTGkfh5z4ZZfrkco';
 const TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjNDFhZjBiOGRlZjAzMWJhMjdhYzljZjY5NGNkMGY3YiIsIm5iZiI6MTYzNjkwMjA3NC42ODcsInN1YiI6IjYxOTEyNGJhZGJmMTQ0MDA0NTAzNWY5YSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.brdukRxNiir-rvvRw1wurq_rzTVB1N6m20HOWMY3uKo';
+const OMDB_KEY = 'c461a681';
 
 let db = null;
 let currentUser = null;
@@ -2049,9 +2210,10 @@ let statsCache = null;
 let feedItems = [];
 let feedOffset = 0;
 const FEED_PAGE_SIZE = 30;
-let discoverList = null;    // currently selected discover list config
-let discoverCache = {};     // { 'key': [...results] } keyed by list id
-let discoverGenreFilter = null; // genre_id to filter discover results by
+let discoverList = null;
+let discoverCache = {};
+let discoverGenreFilter = null;
+let omdbCache = {}; // { imdbId: omdbData } keyed by IMDb ID
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -2283,7 +2445,203 @@ async function tmdbMovieSimilar(id) {
   return tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`);
 }
 
-// ─── DISCOVER LISTS CONFIG ────────────────────────────────────────────────────
+async function tmdbTVExternalIds(id) {
+  return tmdbFetch(`/tv/${id}/external_ids`);
+}
+
+async function tmdbMovieExternalIds(id) {
+  return tmdbFetch(`/movie/${id}/external_ids`);
+}
+
+// ─── RATINGS PANEL ────────────────────────────────────────────────────────────
+async function openRatingsPanel(tmdbId, mediaType, title, year) {
+  document.getElementById('ratings-overlay').classList.add('open');
+  const body = document.getElementById('ratings-panel-body');
+  body.innerHTML = `<div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>`;
+
+  try {
+    // Step 1: Get IMDb ID from TMDB external IDs
+    let imdbId = null;
+    try {
+      const extIds = mediaType === 'tv'
+        ? await tmdbTVExternalIds(tmdbId)
+        : await tmdbMovieExternalIds(tmdbId);
+      imdbId = extIds?.imdb_id || null;
+    } catch (e) { /* continue without IMDb ID */ }
+
+    // Step 2: Fetch OMDb data using IMDb ID or title+year fallback
+    let omdb = null;
+    if (imdbId) {
+      if (omdbCache[imdbId]) {
+        omdb = omdbCache[imdbId];
+      } else {
+        try {
+          const res = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_KEY}&tomatoes=true`);
+          const data = await res.json();
+          if (data.Response === 'True') {
+            omdbCache[imdbId] = data;
+            omdb = data;
+          }
+        } catch (e) { /* omdb unavailable */ }
+      }
+    }
+
+    // Fallback: search by title if no IMDb ID
+    if (!omdb && title) {
+      const cacheKey = `title:${title}:${year}`;
+      if (omdbCache[cacheKey]) {
+        omdb = omdbCache[cacheKey];
+      } else {
+        try {
+          const type = mediaType === 'tv' ? 'series' : 'movie';
+          const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&y=${year||''}&type=${type}&apikey=${OMDB_KEY}&tomatoes=true`);
+          const data = await res.json();
+          if (data.Response === 'True') {
+            omdbCache[cacheKey] = data;
+            omdb = data;
+          }
+        } catch (e) { /* omdb unavailable */ }
+      }
+    }
+
+    renderRatingsPanel(body, omdb, imdbId, title, year, mediaType);
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--red);padding:1rem;">Failed to load ratings: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderRatingsPanel(body, omdb, imdbId, title, year, mediaType) {
+  // Parse OMDb ratings
+  const ratings = omdb?.Ratings || [];
+  const rtCritics = ratings.find(r => r.Source === 'Rotten Tomatoes');
+  const metacritic = ratings.find(r => r.Source === 'Metacritic');
+  const imdbRating = omdb?.imdbRating && omdb.imdbRating !== 'N/A' ? omdb.imdbRating : null;
+  const imdbVotes = omdb?.imdbVotes && omdb.imdbVotes !== 'N/A' ? omdb.imdbVotes : null;
+  const rtAudience = omdb?.tomatoUserMeter && omdb.tomatoUserMeter !== 'N/A' ? omdb.tomatoUserMeter + '%' : null;
+  const consensus = omdb?.tomatoConsensus && omdb.tomatoConsensus !== 'N/A' ? omdb.tomatoConsensus : null;
+
+  // RT Tomatometer
+  const rtPct = rtCritics ? parseInt(rtCritics.Value) : null;
+  const rtScoreClass = rtPct === null ? 'na' : rtPct >= 75 ? 'fresh' : rtPct >= 60 ? 'certified' : 'rotten';
+  const rtIcon = rtPct === null ? '❓' : rtPct >= 60 ? '🍅' : '🤢';
+  const rtLabel = rtPct === null ? 'No Score' : rtPct >= 75 ? 'Fresh' : rtPct >= 60 ? 'Rotten' : 'Rotten';
+
+  // RT Audience
+  const audiencePct = rtAudience ? parseInt(rtAudience) : null;
+  const audienceClass = audiencePct === null ? 'na' : audiencePct >= 60 ? 'audience-up' : 'audience-down';
+  const audienceIcon = audiencePct === null ? '❓' : audiencePct >= 60 ? '🍿' : '💔';
+
+  // Metacritic
+  const mcScore = metacritic ? parseInt(metacritic.Value) : null;
+  const mcClass = mcScore === null ? 'na' : mcScore >= 61 ? 'mc-favorable' : mcScore >= 40 ? 'mc-mixed' : 'mc-unfavorable';
+
+  // Build RT search URL and IMDb URL
+  const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`;
+  const imdbUrl = imdbId ? `https://www.imdb.com/title/${imdbId}/` : `https://www.imdb.com/find?q=${encodeURIComponent(title)}`;
+
+  // TMDB score passed via the calling context (we grab it from trackedShows or trackedMovies)
+  const trackedItem = mediaType === 'tv'
+    ? trackedShows.find(s => s.tmdb?.name === title || s.tmdb?.original_name === title)
+    : trackedMovies.find(m => m.tmdb?.title === title || m.tmdb?.original_title === title);
+  const tmdbScore = trackedItem?.tmdb?.vote_average?.toFixed(1) || null;
+  const tmdbVotes = trackedItem?.tmdb?.vote_count?.toLocaleString() || null;
+
+  body.innerHTML = `
+    <div class="ratings-show-title">${esc(title)}</div>
+    <div class="ratings-show-meta">${year || ''}${mediaType === 'tv' ? ' · TV Series' : ' · Movie'}</div>
+
+    <div class="ratings-grid">
+
+      <!-- Rotten Tomatoes Critics -->
+      <a class="rating-card" onclick="window.open('${rtSearchUrl}','_blank')" title="View on Rotten Tomatoes">
+        <div class="rating-source">Rotten Tomatoes</div>
+        <div class="rating-icon">${rtIcon}</div>
+        <div class="rating-score ${rtScoreClass}">${rtPct !== null ? rtPct + '%' : 'N/A'}</div>
+        <div class="rating-sublabel">${rtLabel} · Critics</div>
+        <div class="rating-sublabel" style="color:var(--amber);font-size:0.65rem;">↗ Open on RT</div>
+      </a>
+
+      <!-- RT Audience -->
+      <a class="rating-card ${audiencePct === null ? 'not-clickable' : ''}" onclick="${audiencePct !== null ? `window.open('${rtSearchUrl}','_blank')` : ''}" title="${audiencePct !== null ? 'View on Rotten Tomatoes' : 'No audience score available'}">
+        <div class="rating-source">RT Audience</div>
+        <div class="rating-icon">${audienceIcon}</div>
+        <div class="rating-score ${audienceClass}">${rtAudience || 'N/A'}</div>
+        <div class="rating-sublabel">Audience Score</div>
+        ${audiencePct !== null ? `<div class="rating-sublabel" style="color:var(--amber);font-size:0.65rem;">↗ Open on RT</div>` : ''}
+      </a>
+
+      <!-- Metacritic -->
+      <div class="rating-card not-clickable">
+        <div class="rating-source">Metacritic</div>
+        <div class="rating-icon">📰</div>
+        <div class="rating-score ${mcClass}">${mcScore !== null ? mcScore : 'N/A'}</div>
+        <div class="rating-sublabel">${mcScore !== null ? (mcScore >= 61 ? 'Favorable' : mcScore >= 40 ? 'Mixed' : 'Unfavorable') : 'No Score'} · /100</div>
+      </div>
+
+      <!-- IMDb -->
+      <a class="rating-card" onclick="window.open('${imdbUrl}','_blank')" title="View on IMDb">
+        <div class="rating-source">IMDb</div>
+        <div class="rating-icon">🎬</div>
+        <div class="rating-score imdb">${imdbRating || 'N/A'}</div>
+        <div class="rating-sublabel">${imdbRating ? '/10' : 'No Score'}</div>
+        ${imdbVotes ? `<div class="rating-votes">${imdbVotes} votes</div>` : ''}
+        <div class="rating-sublabel" style="color:var(--amber);font-size:0.65rem;">↗ Open on IMDb</div>
+      </a>
+
+      <!-- TMDB -->
+      <div class="rating-card not-clickable" style="grid-column: span 2;">
+        <div class="rating-source">TMDB Community</div>
+        <div style="display:flex;align-items:center;gap:1rem;margin:0.2rem 0;">
+          <div style="text-align:center;">
+            <div class="rating-score tmdb" style="font-size:1.6rem;">${tmdbScore || 'N/A'}</div>
+            <div class="rating-sublabel">/10 Score</div>
+          </div>
+          ${tmdbVotes ? `<div style="text-align:center;"><div class="rating-score tmdb" style="font-size:1.6rem;">${tmdbVotes}</div><div class="rating-sublabel">Votes</div></div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    ${consensus ? `
+    <div class="ratings-consensus">
+      <div class="ratings-consensus-label">🍅 Critics Consensus</div>
+      <div class="ratings-consensus-text">${esc(consensus)}</div>
+    </div>` : ''}
+
+    ${!omdb ? `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;margin-bottom:1.5rem;font-size:0.82rem;color:var(--text-muted);">
+      ⚠️ OMDb ratings unavailable for this title. The TMDB score above is from Marquee's existing data.
+    </div>` : ''}
+
+    <div class="ratings-links">
+      <a class="ratings-ext-link" onclick="window.open('${rtSearchUrl}','_blank')">
+        <div class="ratings-ext-link-icon">🍅</div>
+        <div class="ratings-ext-link-info">
+          <div class="ratings-ext-link-name">Rotten Tomatoes</div>
+          <div class="ratings-ext-link-desc">Read critic and audience reviews</div>
+        </div>
+        <div class="ratings-ext-link-arrow">↗</div>
+      </a>
+      <a class="ratings-ext-link" onclick="window.open('${imdbUrl}','_blank')">
+        <div class="ratings-ext-link-icon">🎬</div>
+        <div class="ratings-ext-link-info">
+          <div class="ratings-ext-link-name">IMDb</div>
+          <div class="ratings-ext-link-desc">Full cast, crew, trivia & user reviews</div>
+        </div>
+        <div class="ratings-ext-link-arrow">↗</div>
+      </a>
+    </div>
+  `;
+}
+
+function closeRatingsPanel() {
+  document.getElementById('ratings-overlay').classList.remove('open');
+}
+
+function closeRatingsPanelOutside(e) {
+  if (e.target === document.getElementById('ratings-overlay')) closeRatingsPanel();
+}
+
+
 const DISCOVER_LISTS = [
   {
     section: 'tv',
@@ -4505,7 +4863,7 @@ function renderMovieDetailPanel(tmdb, movie, providers, similar, videos, credits
         <div class="detail-meta-row">
           ${tmdb.release_date ? `<span>${tmdb.release_date.slice(0,4)}</span>` : ''}
           ${runtime ? `<span>⏱ ${runtime}</span>` : ''}
-          ${tmdb.vote_average ? `<span>⭐ ${tmdb.vote_average.toFixed(1)}/10</span>` : ''}
+          ${tmdb.vote_average ? `<button onclick="openRatingsPanel(${tmdb.id},'movie','${esc(tmdb.title).replace(/'/g,"\\'")}','${tmdb.release_date?.slice(0,4)||''}')" style="background:none;border:none;cursor:pointer;padding:0;color:inherit;font-family:inherit;font-size:inherit;" title="View all ratings">⭐ ${tmdb.vote_average.toFixed(1)}/10 <span style="font-size:0.7rem;color:var(--amber);">· Ratings ↗</span></button>` : ''}
         </div>
         <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">${genres}</div>
         ${actionsHtml}
@@ -4579,8 +4937,11 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, c
     ? `<div class="alert-box" style="background:var(--bg3);border-color:var(--border);"><span class="alert-icon">🏁</span><div>This show has ended after <strong>${tmdb.number_of_seasons}</strong> season${tmdb.number_of_seasons !== 1 ? 's' : ''}.</div></div>`
     : '';
 
-  // Rating
-  const rating = tmdb.vote_average ? `⭐ ${tmdb.vote_average.toFixed(1)}/10` : '';
+  // Rating — clickable to open ratings panel
+  const year = tmdb.first_air_date?.slice(0,4) || '';
+  const rating = tmdb.vote_average
+    ? `<button onclick="openRatingsPanel(${tmdb.id},'tv','${esc(tmdb.name).replace(/'/g,"\\'")}','${year}')" style="background:none;border:none;cursor:pointer;padding:0;color:inherit;font-family:inherit;font-size:inherit;" title="View all ratings">⭐ ${tmdb.vote_average.toFixed(1)}/10 <span style="font-size:0.7rem;color:var(--amber);">· Ratings ↗</span></button>`
+    : '';
 
   // Genres
   const genres = (tmdb.genres || []).map(g => `<span style="background:var(--bg3);border:1px solid var(--border);padding:0.15rem 0.55rem;border-radius:50px;font-size:0.72rem;">${esc(g.name)}</span>`).join('');
