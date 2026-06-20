@@ -5220,10 +5220,9 @@ async function toggleEpisode(showId, seasonNum, epNum) {
   refreshShowProgressCache();
   if (nowWatched) {
     logActivity('episode_watched', showId, { season: seasonNum, episode: epNum });
+    // Check if this completes the whole show
+    await checkAutoComplete(showId);
   }
-  // Only re-render the full tab if in grid view or no rows are inline-expanded.
-  // In list view with expanded rows, the season accordions already updated themselves
-  // and a full renderTab() would collapse everything.
   refreshUpNextCache().then(() => {
     if (currentTab === 'watching' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
@@ -5254,13 +5253,67 @@ async function markSeason(showId, seasonNum, watched) {
   const newProgress = await getEpisodeProgress(showId);
   loadSeasonsForDetail(tmdb, newProgress, getActiveSeasonsContainerId(showId));
   refreshShowProgressCache();
-  if (watched) logActivity('season_watched', showId, { season: seasonNum });
+  if (watched) {
+    logActivity('season_watched', showId, { season: seasonNum });
+    await checkAutoComplete(showId);
+  }
   refreshUpNextCache().then(() => {
     if (currentTab === 'watching' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
     }
   });
   toast(watched ? `Season ${seasonNum} marked as watched` : `Season ${seasonNum} unmarked`);
+}
+
+// ─── AUTO-COMPLETE ────────────────────────────────────────────────────────────
+// When a show is Ended or Cancelled and all aired episodes are now watched,
+// automatically move it to Completed.
+async function checkAutoComplete(showId) {
+  const show = trackedShows.find(s => s.tmdb_id === showId);
+  if (!show?.tmdb) return;
+
+  // Only applies to shows in Watching or Watchlist
+  if (!['watching', 'watchlist'].includes(show.status)) return;
+
+  // Only for shows that are definitively over
+  const finishedStatuses = ['Ended', 'Canceled'];
+  if (!finishedStatuses.includes(show.tmdb.status)) return;
+
+  // Count all aired episodes across all seasons
+  const today = new Date();
+  const seasons = (show.tmdb.seasons || []).filter(s => s.season_number > 0);
+  let totalAired = 0;
+
+  for (const s of seasons) {
+    try {
+      const seasonData = await tmdbSeason(showId, s.season_number);
+      const aired = (seasonData.episodes || []).filter(e => e.air_date && new Date(e.air_date) <= today);
+      totalAired += aired.length;
+    } catch (e) { /* skip on error */ }
+  }
+
+  if (totalAired === 0) return;
+
+  // Count watched episodes
+  const progress = await getEpisodeProgress(showId);
+  const watchedCount = progress.filter(p => p.watched).length;
+
+  if (watchedCount >= totalAired) {
+    // All aired episodes watched — move to Completed
+    await db.from('tracked_shows')
+      .update({ status: 'completed' })
+      .eq('tmdb_id', showId)
+      .eq('user_id', currentUser.id);
+
+    show.status = 'completed';
+    logActivity('show_completed', showId, {});
+
+    // Close detail panel if open — it's moving out of the current tab
+    closeDetailPanel();
+    renderTab();
+
+    toast(`🎉 "${show.tmdb.name}" moved to Completed — you finished it!`);
+  }
 }
 
 function closeDetailPanel() {
