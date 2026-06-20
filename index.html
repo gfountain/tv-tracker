@@ -141,25 +141,42 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(13,13,15,0.92);
+      background: rgba(13,13,15,0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      padding: 0 1.5rem;
-      height: 58px;
+    }
+    .topbar-row1 {
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 1rem;
+      padding: 0 1.5rem;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-row2 {
+      display: flex;
+      align-items: center;
+      gap: 0.15rem;
+      padding: 0 1.5rem;
+      height: 40px;
+      background: rgba(10,10,12,0.6);
+    }
+    .tab-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      margin: 0 0.4rem;
+      flex-shrink: 0;
     }
     .logo {
       font-family: 'DM Serif Display', serif;
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       color: var(--amber);
       white-space: nowrap;
       flex-shrink: 0;
     }
     .topbar-search {
       flex: 1;
-      max-width: 480px;
       position: relative;
     }
     .topbar-search input {
@@ -167,49 +184,49 @@
       background: var(--bg3);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 0.5rem 1rem 0.5rem 2.4rem;
+      padding: 0.45rem 1rem 0.45rem 2.2rem;
       border-radius: 50px;
       font-family: inherit;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       transition: border-color 0.2s, background 0.2s;
     }
     .topbar-search input:focus { outline: none; border-color: var(--amber); background: var(--bg2); }
     .topbar-search .search-icon {
       position: absolute;
-      left: 0.85rem;
+      left: 0.8rem;
       top: 50%;
       transform: translateY(-50%);
       color: var(--text-muted);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       pointer-events: none;
     }
     .topbar-tabs {
       display: flex;
-      gap: 0.25rem;
-      margin-left: auto;
+      align-items: center;
+      gap: 0.15rem;
     }
     .tab-btn {
       background: none;
       border: none;
       color: var(--text-muted);
       font-family: inherit;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 500;
-      padding: 0.4rem 0.9rem;
+      padding: 0.35rem 0.8rem;
       border-radius: 50px;
       cursor: pointer;
       transition: all 0.15s;
       white-space: nowrap;
     }
-    .tab-btn:hover { color: var(--text); }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
     .tab-btn.active { background: var(--amber-dim); color: var(--amber); }
     .alert-tab-wrap { position: relative; display: inline-flex; }
     .alert-dot {
       position: absolute;
       top: 2px;
       right: 2px;
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--red);
       display: none;
@@ -219,6 +236,143 @@
       0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(224,82,82,0.6); }
       50% { opacity: 0.6; transform: scale(1.25); box-shadow: 0 0 0 4px rgba(224,82,82,0); }
     }
+
+    /* DISCOVER DROPDOWN */
+    .discover-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-mid);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.35rem 0.8rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .discover-btn:hover { border-color: var(--amber); color: var(--amber); }
+    .discover-btn.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
+    .discover-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: 280px;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+      z-index: 500;
+      padding: 0.5rem;
+      display: none;
+    }
+    .discover-dropdown.open { display: block; }
+    .discover-section-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem 0.3rem;
+    }
+    .discover-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .discover-item:hover { background: rgba(255,255,255,0.05); }
+    .discover-item.active { background: var(--amber-dim); }
+    .discover-item-icon {
+      font-size: 1rem;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .discover-item-text { flex: 1; min-width: 0; }
+    .discover-item-name { font-size: 0.84rem; font-weight: 500; color: var(--text-mid); }
+    .discover-item.active .discover-item-name { color: var(--amber); }
+    .discover-item-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .discover-divider { height: 1px; background: var(--border); margin: 0.4rem 0.5rem; }
+    .discover-wrap { position: relative; }
+
+    /* DISCOVER RESULTS */
+    .discover-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .discover-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      transition: border-color 0.15s;
+    }
+    .discover-row:hover { border-color: rgba(245,166,35,0.3); }
+    .discover-rank {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: var(--amber);
+      width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .discover-rank.high { color: var(--amber); }
+    .discover-rank.mid { color: var(--text-muted); }
+    .discover-poster {
+      width: 42px;
+      height: 62px;
+      object-fit: cover;
+      border-radius: 5px;
+      background: var(--bg4);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .discover-poster:hover { opacity: 0.8; }
+    .discover-info { flex: 1; min-width: 0; }
+    .discover-title {
+      font-weight: 600;
+      font-size: 0.92rem;
+      margin-bottom: 0.2rem;
+      cursor: pointer;
+    }
+    .discover-title:hover { color: var(--amber); }
+    .discover-meta { font-size: 0.76rem; color: var(--text-muted); }
+    .discover-actions { display: flex; gap: 0.4rem; flex-shrink: 0; align-items: center; }
+    .discover-add-btn {
+      background: var(--amber-dim);
+      border: 1px solid var(--amber-glow);
+      color: var(--amber);
+      font-family: inherit;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .discover-add-btn:hover { background: var(--amber); color: #0D0D0F; }
+    .discover-add-btn.tracked { background: rgba(76,175,130,0.12); border-color: rgba(76,175,130,0.3); color: var(--green); cursor: default; }
+    .discover-detail-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.76rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .discover-detail-btn:hover { border-color: var(--amber); color: var(--amber); }
 
     /* SEARCH DROPDOWN */
     .search-dropdown {
@@ -1486,8 +1640,9 @@
 
     /* RESPONSIVE */
     @media (max-width: 640px) {
-      .topbar { padding: 0 1rem; gap: 0.75rem; }
-      .topbar-tabs { display: none; }
+      .topbar-row1 { padding: 0 1rem; gap: 0.6rem; }
+      .topbar-row2 { padding: 0 0.5rem; overflow-x: auto; scrollbar-width: none; }
+      .topbar-row2::-webkit-scrollbar { display: none; }
       .shows-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.85rem; }
       .detail-panel { width: 100vw; }
     }
@@ -1526,31 +1681,41 @@
 <!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
-    <div class="logo">🎬 Marquee</div>
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="mode-tv" onclick="setAppMode('tv')">📺 TV</button>
-      <button class="mode-btn" id="mode-movies" onclick="setAppMode('movies')">🎬 Movies</button>
-    </div>
-    <div class="topbar-search">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="search-input" placeholder="Search for a TV show…" autocomplete="off" />
-      <div class="search-dropdown" id="search-dropdown">
-        <div class="search-loading" id="search-loading" style="display:none;"><div class="spinner"></div></div>
-        <div id="search-results"></div>
+    <!-- Row 1: Logo + Mode + Search + User -->
+    <div class="topbar-row1">
+      <div class="logo">🎬 Marquee</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-tv" onclick="setAppMode('tv')">📺 TV</button>
+        <button class="mode-btn" id="mode-movies" onclick="setAppMode('movies')">🎬 Movies</button>
       </div>
+      <div class="topbar-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search for a TV show…" autocomplete="off" />
+        <div class="search-dropdown" id="search-dropdown">
+          <div class="search-loading" id="search-loading" style="display:none;"><div class="spinner"></div></div>
+          <div id="search-results"></div>
+        </div>
+      </div>
+      <span id="user-email-display" style="font-size:0.76rem;color:var(--text-muted);white-space:nowrap;display:none;"></span>
+      <button class="settings-btn" onclick="handleLogout()" title="Sign Out">🚪</button>
+      <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
     </div>
-    <div class="topbar-tabs" id="topbar-tabs">
+    <!-- Row 2: Tabs + Discover -->
+    <div class="topbar-row2" id="topbar-tabs">
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
       <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+      <div class="discover-wrap">
+        <button class="discover-btn" id="discover-btn" onclick="toggleDiscoverMenu()">🔭 Discover ▾</button>
+        <div class="discover-dropdown" id="discover-dropdown"></div>
+      </div>
+      <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>
     </div>
-    <span id="user-email-display" style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;display:none;"></span>
-    <button class="settings-btn" onclick="handleLogout()" title="Sign Out">🚪</button>
-    <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
   </div>
 
   <div class="main-content" id="main-content"></div>
@@ -1624,13 +1789,15 @@ let calendarYear = new Date().getFullYear();
 let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
 let watchingSubView = 'unwatched'; // 'all' | 'unwatched'
 let showProgressCache = {}; // { [showId]: { watched, total, pct } } — aggregate progress across all aired episodes
-let sortBy = 'added';        // 'added' | 'name' | 'airdate' | 'rating'
-let genreFilter = null;      // null = all, or a genre ID (number)
-let upNextCache = [];        // [{showId, showName, poster, season, episode, name, airDate}]
-let statsCache = null;       // computed lazily when Stats tab opens, cached until data changes
-let feedItems = [];          // activity log cache
-let feedOffset = 0;          // pagination offset for feed
+let sortBy = 'added';
+let genreFilter = null;
+let upNextCache = [];
+let statsCache = null;
+let feedItems = [];
+let feedOffset = 0;
 const FEED_PAGE_SIZE = 30;
+let discoverList = null;    // currently selected discover list config
+let discoverCache = {};     // { 'key': [...results] } keyed by list id
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -1686,6 +1853,7 @@ async function onAuthSuccess(user) {
   await refreshShowProgressCache();
   await detectAndStoreAlerts();
   await loadActiveAlerts();
+  populateDiscoverMenu();
   renderTab();
   updateAlertBell();
 
@@ -1861,7 +2029,194 @@ async function tmdbMovieSimilar(id) {
   return tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`);
 }
 
-// ─── DATA LOADING ─────────────────────────────────────────────────────────────
+// ─── DISCOVER LISTS CONFIG ────────────────────────────────────────────────────
+const DISCOVER_LISTS = [
+  {
+    section: 'tv',
+    items: [
+      { id: 'tv_trending',    label: 'Trending This Week', desc: 'What everyone\'s watching',    icon: '🔥', endpoint: '/trending/tv/week?language=en-US',     type: 'tv' },
+      { id: 'tv_popular',     label: 'Popular Right Now',  desc: 'Most-watched this week',       icon: '📈', endpoint: '/tv/popular?language=en-US',            type: 'tv' },
+      { id: 'tv_top_rated',   label: 'Top Rated All Time', desc: 'Highest community scores',     icon: '⭐', endpoint: '/tv/top_rated?language=en-US',          type: 'tv' },
+      { id: 'tv_airing',      label: 'Airing Today',       desc: 'New episodes out now',         icon: '📡', endpoint: '/tv/airing_today?language=en-US',       type: 'tv' },
+      { id: 'tv_on_air',      label: 'Currently On The Air', desc: 'Active series with new eps', icon: '📺', endpoint: '/tv/on_the_air?language=en-US',         type: 'tv' },
+    ]
+  },
+  {
+    section: 'movies',
+    items: [
+      { id: 'mov_trending',   label: 'Trending Movies',    desc: 'This week\'s biggest films',   icon: '🔥', endpoint: '/trending/movie/week?language=en-US',  type: 'movie' },
+      { id: 'mov_popular',    label: 'Popular Movies',     desc: 'Most-watched this week',       icon: '📈', endpoint: '/movie/popular?language=en-US',         type: 'movie' },
+      { id: 'mov_top_rated',  label: 'Top Rated Movies',   desc: 'All-time community favorites', icon: '⭐', endpoint: '/movie/top_rated?language=en-US',       type: 'movie' },
+      { id: 'mov_now',        label: 'Now In Theaters',    desc: 'Currently playing',            icon: '🎟', endpoint: '/movie/now_playing?language=en-US',     type: 'movie' },
+      { id: 'mov_upcoming',   label: 'Coming Soon',        desc: 'Upcoming releases',            icon: '🗓', endpoint: '/movie/upcoming?language=en-US',        type: 'movie' },
+    ]
+  }
+];
+
+// ─── DISCOVER MENU ────────────────────────────────────────────────────────────
+function populateDiscoverMenu() {
+  const el = document.getElementById('discover-dropdown');
+  if (!el) return;
+
+  const sectionLabels = { tv: '📺 TV Shows', movies: '🎬 Movies' };
+  let html = '';
+
+  DISCOVER_LISTS.forEach((section, si) => {
+    if (si > 0) html += '<div class="discover-divider"></div>';
+    html += `<div class="discover-section-label">${sectionLabels[section.section]}</div>`;
+    section.items.forEach(item => {
+      const isActive = discoverList?.id === item.id;
+      html += `
+        <div class="discover-item ${isActive ? 'active' : ''}" onclick="selectDiscoverList('${item.id}')">
+          <span class="discover-item-icon">${item.icon}</span>
+          <div class="discover-item-text">
+            <div class="discover-item-name">${esc(item.label)}</div>
+            <div class="discover-item-desc">${esc(item.desc)}</div>
+          </div>
+        </div>`;
+    });
+  });
+
+  el.innerHTML = html;
+}
+
+function toggleDiscoverMenu() {
+  const dd = document.getElementById('discover-dropdown');
+  const btn = document.getElementById('discover-btn');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) {
+    closeDiscoverMenu();
+  } else {
+    populateDiscoverMenu();
+    dd.classList.add('open');
+    if (btn) btn.classList.add('active');
+  }
+}
+
+function closeDiscoverMenu() {
+  const dd = document.getElementById('discover-dropdown');
+  if (dd) dd.classList.remove('open');
+  // Only remove active from discover-btn if we're not on discover tab
+  if (currentTab !== 'discover') {
+    const btn = document.getElementById('discover-btn');
+    if (btn) btn.classList.remove('active');
+  }
+}
+
+async function selectDiscoverList(listId) {
+  const allItems = DISCOVER_LISTS.flatMap(s => s.items);
+  const item = allItems.find(i => i.id === listId);
+  if (!item) return;
+
+  discoverList = item;
+  currentTab = 'discover';
+
+  // Mark discover btn active, deactivate all regular tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  const dbtn = document.getElementById('discover-btn');
+  if (dbtn) dbtn.classList.add('active');
+
+  closeDiscoverMenu();
+  renderTab();
+}
+
+// ─── DISCOVER RESULTS ─────────────────────────────────────────────────────────
+async function renderDiscoverResults(container) {
+  if (!discoverList) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔭</div><h3>Pick a list</h3><p>Click Discover in the tab bar to browse curated charts.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="section-header">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:1.5rem;">${discoverList.icon}</span>
+        <span class="section-title">${esc(discoverList.label)}</span>
+        <span style="font-size:0.78rem;color:var(--text-muted);background:var(--bg3);padding:0.2rem 0.6rem;border-radius:50px;">${discoverList.type === 'tv' ? 'TV Shows' : 'Movies'}</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;padding:2rem;"><div class="spinner"></div></div>`;
+
+  // Use cache if available
+  let results = discoverCache[discoverList.id];
+  if (!results) {
+    try {
+      const data = await tmdbFetch(discoverList.endpoint);
+      results = (data.results || []).slice(0, 20);
+      discoverCache[discoverList.id] = results;
+    } catch (e) {
+      container.innerHTML += `<div style="color:var(--red);padding:1rem;">Failed to load list. Check your TMDB token.</div>`;
+      return;
+    }
+  }
+
+  const isTV = discoverList.type === 'tv';
+
+  const rows = results.map((item, idx) => {
+    const tmdbId = item.id;
+    const title = isTV ? item.name : item.title;
+    const year = (isTV ? item.first_air_date : item.release_date)?.slice(0, 4) || '—';
+    const rating = item.vote_average?.toFixed(1) || '?';
+    const genres = item.genre_ids?.slice(0,2).join('·') || '';
+    const poster = item.poster_path
+      ? `<img class="discover-poster" src="${TMDB_IMG}/w92${item.poster_path}" alt="" onclick="event.stopPropagation();${isTV ? `openDetailById(${tmdbId})` : `openMovieDetailById(${tmdbId})`}" />`
+      : `<div class="discover-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">${isTV ? '📺' : '🎬'}</div>`;
+
+    // Check if already tracked
+    const trackedTV = isTV ? trackedShows.find(s => s.tmdb_id === tmdbId) : null;
+    const trackedMov = !isTV ? trackedMovies.find(m => m.tmdb_id === tmdbId) : null;
+    const tracked = trackedTV || trackedMov;
+    const trackedLabel = trackedTV
+      ? { watching: '✓ Watching', watchlist: '✓ Watchlist', completed: '✓ Completed' }[trackedTV.status] || '✓ Tracked'
+      : trackedMov
+      ? (trackedMov.status === 'watched' ? '✓ Watched' : '✓ To Watch')
+      : null;
+
+    const addBtn = tracked
+      ? `<span class="discover-add-btn tracked">${esc(trackedLabel)}</span>`
+      : isTV
+      ? `<button class="discover-add-btn" onclick="event.stopPropagation();addShow(${tmdbId},'watching',this)">+ Add</button>`
+      : `<button class="discover-add-btn" onclick="event.stopPropagation();addMovie(${tmdbId},'to_watch',this)">+ Add</button>`;
+
+    const detailBtn = isTV
+      ? `<button class="discover-detail-btn" onclick="event.stopPropagation();openDetailById(${tmdbId})">Details</button>`
+      : `<button class="discover-detail-btn" onclick="event.stopPropagation();openMovieDetailById(${tmdbId})">Details</button>`;
+
+    const rankColor = idx < 3 ? 'color:var(--amber);' : 'color:var(--text-muted);';
+
+    return `
+      <div class="discover-row">
+        <div class="discover-rank" style="${rankColor}">${idx + 1}</div>
+        ${poster}
+        <div class="discover-info">
+          <div class="discover-title" onclick="${isTV ? `openDetailById(${tmdbId})` : `openMovieDetailById(${tmdbId})`}">${esc(title)}</div>
+          <div class="discover-meta">${year} · ⭐ ${rating}</div>
+        </div>
+        <div class="discover-actions">
+          ${detailBtn}
+          ${addBtn}
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="section-header">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:1.5rem;">${discoverList.icon}</span>
+        <span class="section-title">${esc(discoverList.label)}</span>
+        <span style="font-size:0.78rem;color:var(--text-muted);background:var(--bg3);padding:0.2rem 0.6rem;border-radius:50px;">${discoverList.type === 'tv' ? 'TV Shows' : 'Movies'}</span>
+      </div>
+    </div>
+    <div class="discover-list">${rows}</div>`;
+}
+
+// Close discover menu when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.discover-wrap')) closeDiscoverMenu();
+});
+
+
 async function loadAllShows() {
   const { data, error } = await db.from('tracked_shows').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
@@ -2282,7 +2637,11 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     updateAlertBell();
     renderTab();
     toast('Show added to your list ✓');
-    if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
+    if (btn) {
+      btn.textContent = '✓ Watching';
+      btn.className = btn.className.includes('discover') ? 'discover-add-btn tracked' : 'search-result-add tracked';
+      btn.disabled = false;
+    }
     await logActivity('show_added', tmdbId);
     refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
   } catch (e) {
@@ -2337,7 +2696,11 @@ async function addMovie(tmdbId, status = 'to_watch', btn = null) {
     await logActivity('movie_added', tmdbId, { showName: addedMovie?.tmdb?.title, meta: { status } });
     renderTab();
     toast('Movie added ✓');
-    if (btn) { btn.textContent = '✓ Tracked'; btn.className = 'search-result-add tracked'; btn.disabled = false; }
+    if (btn) {
+      btn.textContent = '✓ To Watch';
+      btn.className = btn.className.includes('discover') ? 'discover-add-btn tracked' : 'search-result-add tracked';
+      btn.disabled = false;
+    }
   } catch (e) {
     toast('Failed to add movie', true);
     if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
@@ -2374,7 +2737,6 @@ async function removeMovie(tmdbId) {
 
 function setAppMode(mode) {
   appMode = mode;
-
   document.getElementById('mode-tv').classList.toggle('active', mode === 'tv');
   document.getElementById('mode-movies').classList.toggle('active', mode === 'movies');
 
@@ -2386,9 +2748,15 @@ function setAppMode(mode) {
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
       <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+      <div class="discover-wrap">
+        <button class="discover-btn" id="discover-btn" onclick="toggleDiscoverMenu()">🔭 Discover ▾</button>
+        <div class="discover-dropdown" id="discover-dropdown"></div>
+      </div>
+      <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
     searchInput.placeholder = 'Search for a TV show…';
     currentTab = 'watching';
@@ -2396,53 +2764,61 @@ function setAppMode(mode) {
     tabsEl.innerHTML = `
       <button class="tab-btn active" onclick="switchMovieTab('to_watch')">To Watch</button>
       <button class="tab-btn" onclick="switchMovieTab('watched')">Watched</button>
+      <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
       <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+      <div class="discover-wrap">
+        <button class="discover-btn" id="discover-btn" onclick="toggleDiscoverMenu()">🔭 Discover ▾</button>
+        <div class="discover-dropdown" id="discover-dropdown"></div>
+      </div>
+      <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
     searchInput.placeholder = 'Search for a movie…';
     currentMovieTab = 'to_watch';
   }
 
-  // Re-attach alert dot state after re-rendering the tab bar
+  populateDiscoverMenu();
   updateAlertBell();
-
   searchInput.value = '';
   document.getElementById('search-dropdown').classList.remove('open');
-
   renderTab();
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
-  // Active state: in TV mode tabs are at indices 0-6; in Movies mode, media tabs are
-  // at 0-1 (handled by switchMovieTab) and shared tabs start at index 2.
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = appMode === 'tv'
-      ? ['watching','watchlist','completed','feed','calendar','stats','alerts']
-      : ['to_watch','watched','feed','calendar','stats','alerts'];
-    btn.classList.toggle('active', tabs[i] === tab);
+  // Use onclick attribute matching so dividers don't offset the index
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const onclick = btn.getAttribute('onclick') || '';
+    const isThisTab = onclick.includes(`switchTab('${tab}')`);
+    btn.classList.toggle('active', isThisTab);
   });
+  // Deactivate discover btn when switching to regular tabs
+  const dbtn = document.getElementById('discover-btn');
+  if (dbtn) dbtn.classList.remove('active');
+  closeDiscoverMenu();
   renderTab();
 }
 
 function switchMovieTab(tab) {
   currentMovieTab = tab;
-  // Only mark the first two buttons active (To Watch / Watched); shared tabs use switchTab
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    const tabs = ['to_watch','watched','feed','calendar','stats','alerts'];
-    btn.classList.toggle('active', tabs[i] === tab);
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const onclick = btn.getAttribute('onclick') || '';
+    btn.classList.toggle('active', onclick.includes(`switchMovieTab('${tab}')`));
   });
+  const dbtn = document.getElementById('discover-btn');
+  if (dbtn) dbtn.classList.remove('active');
+  closeDiscoverMenu();
   renderMoviesTab(document.getElementById('main-content'));
 }
 
 function renderTab() {
   const el = document.getElementById('main-content');
-  // Feed and Alerts are shared across both modes
   if (currentTab === 'feed') { renderFeed(el); return; }
   if (currentTab === 'alerts') { renderAlerts(el); return; }
   if (currentTab === 'calendar') { renderCalendar(el); return; }
+  if (currentTab === 'discover') { renderDiscoverResults(el); return; }
   if (appMode === 'movies') {
     if (currentTab === 'stats') renderMovieStats(el);
     else renderMoviesTab(el);
