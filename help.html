@@ -1,0 +1,620 @@
+<!--
+  Marquee Help File
+  This file is fetched and injected into the help slide-out panel in index.html.
+  It is an HTML fragment — no <html>, <head>, or <body> tags.
+  All styling uses Marquee's CSS variables defined in index.html.
+-->
+
+<div class="help-inner">
+
+  <!-- SEARCH -->
+  <div class="help-search-wrap">
+    <input type="text" class="help-search-input" id="help-search" placeholder="🔍  Search help…" oninput="filterHelp(this.value)" autocomplete="off" />
+    <div id="help-search-count" class="help-search-count"></div>
+  </div>
+
+  <div class="help-layout">
+
+    <!-- TABLE OF CONTENTS -->
+    <nav class="help-toc" id="help-toc">
+      <div class="help-toc-title">Contents</div>
+      <a class="help-toc-link" href="#whats-new">What's New</a>
+      <a class="help-toc-link" href="#getting-started">Getting Started</a>
+      <a class="help-toc-link" href="#navigation">Navigation</a>
+      <a class="help-toc-link" href="#tv-shows">TV Shows</a>
+      <a class="help-toc-link" href="#status-badges">Status Badges</a>
+      <a class="help-toc-link" href="#episode-tracking">Episode Tracking</a>
+      <a class="help-toc-link" href="#up-next">Up Next Widget</a>
+      <a class="help-toc-link" href="#movies">Movies</a>
+      <a class="help-toc-link" href="#discover">Discover</a>
+      <a class="help-toc-link" href="#calendar">Calendar</a>
+      <a class="help-toc-link" href="#alerts">Alerts & Notifications</a>
+      <a class="help-toc-link" href="#feed">Activity Feed</a>
+      <a class="help-toc-link" href="#stats">Stats</a>
+      <a class="help-toc-link" href="#settings">Settings</a>
+      <a class="help-toc-link" href="#background-notifications">Background Emails</a>
+      <a class="help-toc-link" href="#faq">FAQ</a>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="help-content" id="help-content">
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="whats-new">
+        <h2 class="help-h2">📋 What's New</h2>
+        <p class="help-p">Marquee has evolved through many iterations. Here's a summary of what was added over time, most recent first.</p>
+
+        <div class="help-changelog">
+
+          <div class="help-change-block">
+            <div class="help-change-version">Current Version</div>
+            <ul class="help-ul">
+              <li><strong>Two-row topbar</strong> — logo, mode toggle, and search on row 1; all navigation tabs on row 2. Much less crowded.</li>
+              <li><strong>🔭 Discover</strong> — a dropdown in the tab bar giving access to 10 TMDB curated charts: Trending, Popular, Top Rated, Airing Today, On The Air (TV), and Trending, Popular, Top Rated, Now In Theaters, Coming Soon (Movies).</li>
+              <li><strong>List view inline expansion</strong> — in list view, click a show row to expand it in place and see season/episode accordions. Click the poster or title to open the full slide-out detail panel instead.</li>
+              <li><strong>Next air date in list view</strong> — upcoming episode air dates shown directly on each list row.</li>
+              <li><strong>Live alert sections now dismissible</strong> — the Upcoming, Cancelled/Ended, and Returning sections all have ✕ dismiss buttons. Dismissals are snoozed in localStorage and auto-expire when the underlying condition changes.</li>
+              <li><strong>Help panel</strong> — this panel, searchable and accessible via the ? button in the topbar.</li>
+            </ul>
+          </div>
+
+          <div class="help-change-block">
+            <div class="help-change-version">Previous Updates</div>
+            <ul class="help-ul">
+              <li><strong>🎬 Movies mode</strong> — full movie tracker with To Watch / Watched lists, trailer embeds, cast/crew, streaming providers, similar movies, and movie stats.</li>
+              <li><strong>TV/Movies mode toggle</strong> — pill toggle in the topbar switches the entire app between TV and Movies contexts.</li>
+              <li><strong>🔭 Discover</strong> — browse TMDB curated charts and add directly from results.</li>
+              <li><strong>📊 Stats page</strong> — total episodes watched, hours, days, genre breakdown, most-watched shows, biggest commitment.</li>
+              <li><strong>▶ Up Next widget</strong> — shows the next unwatched aired episode for each show in your Watching list, at the top of the Watching tab.</li>
+              <li><strong>📋 Activity Feed</strong> — chronological log of everything you do in the app: shows added, episodes watched, seasons completed, status changes, movies added/watched.</li>
+              <li><strong>Sort & filter</strong> — sort any list by Recently Added, Name, Next Air Date, or Rating; filter by genre chips built from your actual library.</li>
+              <li><strong>Unwatched Episodes sub-view</strong> — default view on the Watching tab, showing only shows with unwatched aired episodes and a badge showing how many.</li>
+              <li><strong>🎭 Cast & crew</strong> — headshots, character names, and key crew (director, showrunner, creator) in every detail panel.</li>
+              <li><strong>🎞️ Trailer embeds</strong> — official YouTube trailers embedded directly in the detail panel.</li>
+              <li><strong>📆 Calendar tab</strong> — full month grid of episode air dates and movie release dates across all tracked content.</li>
+              <li><strong>🔔 Alerts system</strong> — dismissible persisted notifications for changes detected on your tracked shows, plus live status sections.</li>
+              <li><strong>Background email notifications</strong> — hourly Edge Function polls TMDB and emails you immediately when something changes.</li>
+              <li><strong>Multi-user auth</strong> — Supabase Auth with email/password and magic link sign-in; each user sees only their own data via Row Level Security.</li>
+              <li><strong>Hide watched seasons</strong> — fully-watched seasons hidden by default; toggle to reveal them.</li>
+              <li><strong>Season stay-open on episode toggle</strong> — checking off an episode no longer collapses the season accordion.</li>
+            </ul>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="getting-started">
+        <h2 class="help-h2">🚀 Getting Started</h2>
+
+        <h3 class="help-h3">Signing In</h3>
+        <p class="help-p">Marquee uses Supabase Auth. On the sign-in screen you have three options:</p>
+        <ul class="help-ul">
+          <li><strong>Email + Password</strong> — enter your email and password and click Sign In.</li>
+          <li><strong>Sign Up</strong> — switch to the Sign Up tab, enter email and password. If email confirmation is required, check your inbox first.</li>
+          <li><strong>Magic Link</strong> — enter your email and click "✨ Send Magic Link Instead." You'll receive an email with a link that signs you in instantly, no password required.</li>
+        </ul>
+
+        <h3 class="help-h3">Session Persistence</h3>
+        <p class="help-p">Marquee stays signed in across browser restarts automatically — Supabase stores your session token in localStorage. You'll only be asked to sign in again if you explicitly sign out (the 🚪 button in the topbar) or if your session expires after a very long time.</p>
+
+        <h3 class="help-h3">Who Can Sign Up?</h3>
+        <p class="help-p">Marquee is configured for a small group of invited users — public sign-ups may be disabled. If you can't sign up, contact the person who set up Marquee and ask them to send you an invite from the Supabase dashboard.</p>
+
+        <h3 class="help-h3">Your Data is Private</h3>
+        <p class="help-p">Every piece of data in Marquee — your shows, episode progress, alerts, activity — is scoped to your account via Supabase Row Level Security. Even if two people use the same Marquee instance, neither can see the other's data. This is enforced at the database level, not just in the UI.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="navigation">
+        <h2 class="help-h2">🧭 Navigation</h2>
+
+        <h3 class="help-h3">The Two-Row Topbar</h3>
+        <p class="help-p"><strong>Row 1</strong> contains the logo, TV/Movies mode toggle, search bar, your email address, the sign-out button (🚪), and settings (⚙️) and help (?) buttons.</p>
+        <p class="help-p"><strong>Row 2</strong> contains all navigation tabs. On small screens it scrolls horizontally.</p>
+
+        <h3 class="help-h3">TV / Movies Mode Toggle</h3>
+        <p class="help-p">The pill toggle in row 1 switches the entire app between <strong>📺 TV mode</strong> and <strong>🎬 Movies mode</strong>. Each mode has its own tab bar, its own lists, and its own search context. The Feed, Calendar, Alerts, Stats, and Discover tabs are shared between both modes.</p>
+
+        <h3 class="help-h3">TV Tabs</h3>
+        <table class="help-table">
+          <tr><th>Tab</th><th>What it shows</th></tr>
+          <tr><td><strong>Watching</strong></td><td>Shows you're actively watching. Defaults to "Unwatched Episodes" sub-view.</td></tr>
+          <tr><td><strong>Watchlist</strong></td><td>Shows you want to watch but haven't started.</td></tr>
+          <tr><td><strong>Completed</strong></td><td>Shows you've finished entirely.</td></tr>
+          <tr><td><strong>📋 Feed</strong></td><td>Chronological activity log of everything you've done in the app.</td></tr>
+          <tr><td><strong>📆 Calendar</strong></td><td>Month grid of upcoming episode air dates and movie release dates.</td></tr>
+          <tr><td><strong>📊 Stats</strong></td><td>Watch statistics: episodes, hours, genres, top shows.</td></tr>
+          <tr><td><strong>🔭 Discover</strong></td><td>Dropdown menu of TMDB curated charts.</td></tr>
+          <tr><td><strong>🔔 Alerts</strong></td><td>Notifications and live status sections. Red dot when new alerts are waiting.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Movies Tabs</h3>
+        <table class="help-table">
+          <tr><th>Tab</th><th>What it shows</th></tr>
+          <tr><td><strong>To Watch</strong></td><td>Movies you want to see.</td></tr>
+          <tr><td><strong>Watched</strong></td><td>Movies you've seen, with the date you marked them watched.</td></tr>
+          <tr><td><strong>📋 Feed, 📆 Calendar, 📊 Stats, 🔭 Discover, 🔔 Alerts</strong></td><td>Same as TV mode — fully shared.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Grid vs List View</h3>
+        <p class="help-p">Every show/movie list has a <strong>⊞ Grid</strong> and <strong>≡ List</strong> toggle in the top-right corner of the content area. Grid shows poster cards; List shows compact rows. The default is List view. In list view, clicking a row expands it inline to show episode/season tracking (see <a class="help-link" href="#episode-tracking">Episode Tracking</a>).</p>
+
+        <h3 class="help-h3">Sort & Filter</h3>
+        <p class="help-p">Every list has a sort dropdown (Recently Added, Name A–Z, Next Air Date, Rating) and genre filter chips. Genre chips are built dynamically from the genres actually present in your current list — so you'll never see an irrelevant genre option.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="tv-shows">
+        <h2 class="help-h2">📺 TV Shows</h2>
+
+        <h3 class="help-h3">Adding a Show</h3>
+        <p class="help-p">Type in the search bar at the top while in TV mode. Results appear as you type with poster thumbnails, year, and rating. Each result has a <strong>+ Add</strong> button to add directly to Watching, or click the result to open the full detail panel and choose which list to add it to.</p>
+
+        <h3 class="help-h3">The Three Lists</h3>
+        <table class="help-table">
+          <tr><th>List</th><th>Intended for</th></tr>
+          <tr><td><strong>Watching</strong></td><td>Shows you're currently in the middle of, or catching up on.</td></tr>
+          <tr><td><strong>Watchlist</strong></td><td>Shows you intend to watch but haven't started. No functional difference from Watching — just a different label for your own organization.</td></tr>
+          <tr><td><strong>Completed</strong></td><td>Shows you've fully finished. Completed shows are excluded from the Alerts and Up Next systems.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Watching Tab Sub-Views</h3>
+        <p class="help-p">The Watching tab has two sub-views accessed via chips below the section header:</p>
+        <ul class="help-ul">
+          <li><strong>Unwatched Episodes</strong> (default) — only shows with at least one aired episode you haven't checked off yet. Shows an amber "N new" badge with the count.</li>
+          <li><strong>All Shows</strong> — your complete Watching list regardless of progress.</li>
+        </ul>
+
+        <h3 class="help-h3">Show Detail Panel</h3>
+        <p class="help-p">Click any show's poster or title (in list view) or anywhere on its card (in grid view) to open the detail panel. It slides in from the right and contains:</p>
+        <ul class="help-ul">
+          <li>Backdrop image, poster, title, genres, TMDB rating, air years, season/episode counts</li>
+          <li>Status badge and any upcoming episode alert or cancellation/ending notice</li>
+          <li>Overview text</li>
+          <li><strong>Seasons & Episodes</strong> — full episode tracking (see <a class="help-link" href="#episode-tracking">Episode Tracking</a>)</li>
+          <li><strong>Trailer</strong> — embedded YouTube trailer (official trailer selected first)</li>
+          <li><strong>Where to Watch</strong> — US streaming provider logos from TMDB</li>
+          <li><strong>Cast</strong> — scrollable row of headshots, actor names, and character names</li>
+          <li><strong>Crew</strong> — creators, showrunners, executive producers</li>
+          <li><strong>You Might Also Like</strong> — similar shows, each clickable</li>
+          <li>Action buttons: move between lists, or remove the show</li>
+        </ul>
+
+        <h3 class="help-h3">Moving a Show Between Lists</h3>
+        <p class="help-p">Open the show's detail panel. The three list buttons (Watching, Watchlist, Completed) are shown with the current list highlighted in amber. Click any other button to move the show. The highlighted button updates immediately.</p>
+
+        <h3 class="help-h3">Removing a Show</h3>
+        <p class="help-p">Open the detail panel and click the red <strong>Remove</strong> button. This deletes the show, all its episode progress, and any alerts associated with it. This cannot be undone.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="status-badges">
+        <h2 class="help-h2">🏷️ Status Badges</h2>
+        <p class="help-p">Every show card and detail panel shows a status badge reflecting the show's current production status on TMDB. Here's what each one means:</p>
+
+        <table class="help-table">
+          <tr><th>Badge</th><th>Color</th><th>Meaning</th></tr>
+          <tr>
+            <td><span class="help-badge help-badge-returning">● Returning</span></td>
+            <td>Green</td>
+            <td>The show has been <strong>renewed and is confirmed to return</strong> for at least one more season. A future season exists but may not have a confirmed air date yet. This is the healthiest status — the show is alive and more is coming.</td>
+          </tr>
+          <tr>
+            <td><span class="help-badge help-badge-ended">■ Ended</span></td>
+            <td>Grey</td>
+            <td>The show has <strong>concluded naturally</strong>. The creators chose to end it — it wasn't cancelled. All episodes have aired. Examples: Breaking Bad, The Wire, Schitt's Creek.</td>
+          </tr>
+          <tr>
+            <td><span class="help-badge help-badge-cancelled">✕ Cancelled</span></td>
+            <td>Red</td>
+            <td>The show was <strong>cancelled by the network or streaming service</strong>, typically before the story reached a natural conclusion. No more episodes will be made.</td>
+          </tr>
+          <tr>
+            <td><span class="help-badge help-badge-production">◆ In Production</span></td>
+            <td>Amber</td>
+            <td>A new season is <strong>currently being filmed</strong>. An air date may or may not be confirmed yet. The show is active but episodes aren't available yet.</td>
+          </tr>
+          <tr>
+            <td><span class="help-badge help-badge-planned">◇ Planned</span></td>
+            <td>Blue</td>
+            <td>A future season has been <strong>announced but production hasn't started</strong> yet. The least certain status — plans can change.</td>
+          </tr>
+        </table>
+
+        <h3 class="help-h3">What's the difference between Ended and Cancelled?</h3>
+        <p class="help-p"><strong>Ended</strong> means the show finished on its own terms — the creators wrapped the story. <strong>Cancelled</strong> means the network or streaming service pulled the plug, often leaving storylines unresolved. TMDB makes this distinction and Marquee reflects it with different colors (grey vs red) so you know at a glance whether the ending was intentional.</p>
+
+        <h3 class="help-h3">Why does a show say "Returning" but have no air date?</h3>
+        <p class="help-p">"Returning Series" is TMDB's status for any show that's been renewed, even if the next season's premiere date hasn't been announced yet. The renewal is confirmed, but the schedule isn't. Once a date is set, TMDB adds it and Marquee will detect the change and generate a "Season date announced" notification.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="episode-tracking">
+        <h2 class="help-h2">🎬 Episode Tracking</h2>
+
+        <h3 class="help-h3">Season Accordions</h3>
+        <p class="help-p">In the show detail panel (and in the inline list-view expansion), seasons are shown as collapsible accordions. Click a season header to expand it and see all episodes. Click it again to collapse. Multiple seasons can be open at the same time.</p>
+
+        <h3 class="help-h3">Marking Episodes Watched</h3>
+        <p class="help-p">Click any episode row to toggle it between watched (green ✓) and unwatched. Future episodes that haven't aired yet are shown dimmed and aren't clickable. The season stays expanded while you check off episodes — it won't collapse on you.</p>
+
+        <h3 class="help-h3">Season Progress</h3>
+        <p class="help-p">Each season header shows:</p>
+        <ul class="help-ul">
+          <li>A <strong>watched/total count</strong> (e.g. "7/10")</li>
+          <li>A <strong>mini progress bar</strong> that fills amber as you watch</li>
+          <li>A <strong>circle checkmark</strong> — turns green when the season is fully watched</li>
+        </ul>
+
+        <h3 class="help-h3">Mark All / Unmark All</h3>
+        <p class="help-p">Each season header has a <strong>✓ All</strong> button that marks every aired episode in that season as watched in one click. If all episodes are already watched it shows <strong>↩</strong> to unmark them all. Only aired episodes are affected — future episodes are skipped.</p>
+
+        <h3 class="help-h3">Hide Watched Seasons</h3>
+        <p class="help-p">Fully-watched seasons are <strong>hidden by default</strong> so you only see what's left to watch. The button in the Seasons & Episodes header toggles between "👁 Show Watched Seasons" and "🙈 Hide Watched Seasons." The setting is per-show and per-session (not saved to the database).</p>
+
+        <h3 class="help-h3">Inline Expansion in List View</h3>
+        <p class="help-p">In list view (≡), clicking anywhere on a show row <strong>expands it inline</strong> to reveal the full season/episode accordion — the same tracking interface as the detail panel, without leaving the list. A ▾ chevron on the right indicates expand/collapse state.</p>
+        <p class="help-p">To open the full <strong>slide-out detail panel</strong> instead, click specifically on the <strong>poster thumbnail</strong> or the <strong>show title text</strong>.</p>
+
+        <h3 class="help-h3">Progress on Show Cards</h3>
+        <p class="help-p">In grid view, each show card shows a thin progress bar at the bottom. In list view, a "X/Y eps" counter and progress bar appear on the right. These counts reflect real aired-episode data — a show with 80 total episodes but only 40 aired will show progress out of 40, not 80.</p>
+
+        <h3 class="help-h3">How is "total aired" calculated?</h3>
+        <p class="help-p">Marquee uses TMDB's <code>last_episode_to_air</code> data to estimate how many episodes have aired, rather than fetching every season's episode list (which would be slow). The detail panel's season accordions always show the exact correct count. The card-level progress bar is an estimate that's accurate for the vast majority of shows.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="up-next">
+        <h2 class="help-h2">▶ Up Next Widget</h2>
+        <p class="help-p">The Up Next widget appears at the <strong>top of the Watching tab</strong> (above the show list) and tells you exactly where to pick up on each show you're watching.</p>
+
+        <h3 class="help-h3">What it shows</h3>
+        <p class="help-p">For each show in your Watching list that has unwatched aired episodes, Up Next surfaces the <strong>earliest unwatched aired episode</strong> — not just the next season, the specific episode. It shows the show's backdrop image, show name, season/episode number (e.g. S2E4), and episode title.</p>
+
+        <h3 class="help-h3">When it updates</h3>
+        <p class="help-p">Up Next refreshes automatically when you:</p>
+        <ul class="help-ul">
+          <li>Check off an episode as watched</li>
+          <li>Mark a whole season watched/unwatched</li>
+          <li>Add a show to Watching</li>
+          <li>Move a show into or out of Watching</li>
+        </ul>
+        <p class="help-p">On initial app load, Up Next loads slightly after the main list (it requires fetching season data from TMDB for each show) and populates once ready without blocking the rest of the page.</p>
+
+        <h3 class="help-h3">Clicking a card</h3>
+        <p class="help-p">Clicking any Up Next card opens that show's full detail panel, where you can mark the episode watched and see what's next.</p>
+
+        <h3 class="help-h3">Why doesn't a show appear?</h3>
+        <p class="help-p">A show won't appear in Up Next if:</p>
+        <ul class="help-ul">
+          <li>All aired episodes are already marked watched (you're caught up)</li>
+          <li>The show has no aired episodes yet (everything is in the future)</li>
+          <li>The show is in Watchlist or Completed, not Watching</li>
+        </ul>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="movies">
+        <h2 class="help-h2">🎬 Movies</h2>
+
+        <h3 class="help-h3">Switching to Movies Mode</h3>
+        <p class="help-p">Click the <strong>🎬 Movies</strong> button in the mode toggle (top-left of the topbar) to switch the entire app into Movies mode. The tab bar changes, and searching now searches movies instead of TV shows.</p>
+
+        <h3 class="help-h3">Adding a Movie</h3>
+        <p class="help-p">Search for a movie in the search bar while in Movies mode. Results show the movie poster, year, and rating. Click <strong>+ Add</strong> to add directly to your To Watch list, or click the result to open the detail panel and choose To Watch or Watched directly.</p>
+
+        <h3 class="help-h3">The Two Lists</h3>
+        <table class="help-table">
+          <tr><th>List</th><th>Meaning</th></tr>
+          <tr><td><strong>To Watch</strong></td><td>Movies you intend to see. Upcoming movies from this list appear on the Calendar with their release date.</td></tr>
+          <tr><td><strong>Watched</strong></td><td>Movies you've seen. Records the date you marked them watched.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Marking a Movie Watched</h3>
+        <p class="help-p">Open a movie's detail panel and click the prominent <strong>"○ Mark as Watched"</strong> button. It turns green and shows the date. Click it again (now showing "✓ Watched") to move the movie back to your To Watch list.</p>
+
+        <h3 class="help-h3">Movie Detail Panel</h3>
+        <p class="help-p">Same slide-out pattern as TV shows but tailored for movies:</p>
+        <ul class="help-ul">
+          <li>Backdrop, poster, title, genres, release year, runtime (e.g. "2h 22m"), TMDB rating</li>
+          <li>Mark as Watched / Unmark toggle — prominently placed</li>
+          <li>Date watched (when applicable)</li>
+          <li>Trailer embed, streaming providers, cast, crew (Director, Screenplay), similar movies</li>
+        </ul>
+
+        <h3 class="help-h3">Movies on the Calendar</h3>
+        <p class="help-p">Movies from your <strong>To Watch</strong> list that have a confirmed release date appear on the Calendar tab with a 🎬 prefix, alongside TV episode air dates. Once a movie releases and you mark it watched, it no longer appears as "upcoming" on the calendar.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="discover">
+        <h2 class="help-h2">🔭 Discover</h2>
+        <p class="help-p">Discover gives you access to TMDB's curated charts so you can find new things to watch without leaving Marquee. It's available in both TV and Movies modes.</p>
+
+        <h3 class="help-h3">Opening Discover</h3>
+        <p class="help-p">Click <strong>🔭 Discover ▾</strong> in the tab bar (row 2). A dropdown menu appears grouped into TV Shows and Movies sections. Click any list to load its results. Click outside the menu to close it without selecting.</p>
+
+        <h3 class="help-h3">TV Show Lists</h3>
+        <table class="help-table">
+          <tr><th>List</th><th>What it shows</th></tr>
+          <tr><td>🔥 Trending This Week</td><td>Shows with the most activity (views, ratings, list adds) on TMDB in the past 7 days. Reflects what people are actively talking about right now.</td></tr>
+          <tr><td>📈 Popular Right Now</td><td>TMDB's ongoing popularity ranking — a rolling score that weighs recent activity. Different from Trending in that it's more stable and less reactive to single-week spikes.</td></tr>
+          <tr><td>⭐ Top Rated All Time</td><td>Highest average TMDB user ratings of all time. Requires a minimum number of votes. Great for finding critically acclaimed shows you might have missed.</td></tr>
+          <tr><td>📡 Airing Today</td><td>Shows with at least one episode airing today (based on US schedules).</td></tr>
+          <tr><td>📺 Currently On The Air</td><td>Shows that have aired at least one episode in the past 7 days — actively running series.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Movie Lists</h3>
+        <table class="help-table">
+          <tr><th>List</th><th>What it shows</th></tr>
+          <tr><td>🔥 Trending Movies</td><td>Most-discussed movies on TMDB this week.</td></tr>
+          <tr><td>📈 Popular Movies</td><td>TMDB's rolling popularity score for movies.</td></tr>
+          <tr><td>⭐ Top Rated Movies</td><td>Highest average user ratings of all time.</td></tr>
+          <tr><td>🎟 Now In Theaters</td><td>Movies currently in theatrical release (US-focused).</td></tr>
+          <tr><td>🗓 Coming Soon</td><td>Upcoming movies with confirmed release dates.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Results Page</h3>
+        <p class="help-p">Each list shows up to 20 results in a ranked numbered list. Gold numbers for the top 3. Each row shows:</p>
+        <ul class="help-ul">
+          <li>Rank number, poster thumbnail, title, year, TMDB rating</li>
+          <li><strong>Details</strong> button — opens the full slide-out detail panel (trailer, cast, streaming, etc.) without adding the show</li>
+          <li><strong>+ Add</strong> button — adds directly to Watching (TV) or To Watch (Movies). Changes to a green "✓ Watching" / "✓ To Watch" badge once added, so you can see at a glance what you already have vs. what's new to you</li>
+        </ul>
+
+        <h3 class="help-h3">Caching</h3>
+        <p class="help-p">Each list is fetched from TMDB once per session and cached in memory. Switching between lists is instant after the first load. Refreshing the page clears the cache.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="calendar">
+        <h2 class="help-h2">📆 Calendar</h2>
+        <p class="help-p">The Calendar tab shows a full month grid of every episode airing date and movie release date across <strong>all</strong> your tracked content — Watching, Watchlist, Completed, To Watch, and Watched movies all included.</p>
+
+        <h3 class="help-h3">Navigating Months</h3>
+        <p class="help-p">Use the <strong>‹</strong> and <strong>›</strong> buttons to move between months. The <strong>Today</strong> button snaps back to the current month. Each month is fetched from TMDB once and cached — switching months is fast after the first visit.</p>
+
+        <h3 class="help-h3">What Shows on Each Day</h3>
+        <ul class="help-ul">
+          <li><strong>TV episodes</strong> — shown as amber chips with the show name and episode code (e.g. "Severance S2E4")</li>
+          <li><strong>Movie releases</strong> — shown with a 🎬 prefix and the movie title</li>
+          <li>If a day has more than 3 items, a <strong>"+N more"</strong> indicator appears</li>
+          <li><strong>Today</strong> is highlighted with an amber border</li>
+          <li><strong>Past dates</strong> are styled in muted grey; upcoming dates in amber</li>
+        </ul>
+
+        <h3 class="help-h3">Clicking a Calendar Entry</h3>
+        <p class="help-p">Click any episode or movie chip to open its full detail panel instantly.</p>
+
+        <h3 class="help-h3">Why are some shows missing from the calendar?</h3>
+        <p class="help-p">The calendar fetches season data for each tracked show to find episode dates. Shows with very long run histories (10+ seasons) may have some older seasons skipped as a performance optimization — only seasons that could plausibly have episodes in the visible month are fetched.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="alerts">
+        <h2 class="help-h2">🔔 Alerts & Notifications</h2>
+        <p class="help-p">The Alerts tab has two distinct systems that look similar but work very differently.</p>
+
+        <h3 class="help-h3">The Red Dot</h3>
+        <p class="help-p">A small red dot pulses on the 🔔 Alerts tab button whenever you have at least one undismissed notification. It disappears once all notifications are dismissed.</p>
+
+        <h3 class="help-h3">Dismissible Notifications (🔔 Notifications section)</h3>
+        <p class="help-p">These are <strong>one-time events</strong> — something changed on a show since Marquee last checked. They're stored permanently in your Supabase <code>alerts</code> table and survive page refreshes. They fire once per event and stay until you dismiss them. Generated by both the app on load and the hourly background job.</p>
+
+        <table class="help-table">
+          <tr><th>Icon</th><th>Type</th><th>What triggers it</th></tr>
+          <tr><td>📅</td><td>Season date announced</td><td>A tracked show previously had <em>no</em> confirmed next air date — now it does. TMDB has a specific episode date locked in.</td></tr>
+          <tr><td>🆕</td><td>New season added</td><td>TMDB's season count for the show increased. A new season entry was added to the show's record.</td></tr>
+          <tr><td>🔄</td><td>Status changed</td><td>The show flipped from "In Production" → "Returning Series" (confirmed renewal) or from "Planned" into production.</td></tr>
+          <tr><td>🚫</td><td>Cancelled</td><td>The show's status changed <em>to</em> Canceled. Fires once, at the moment the change is detected.</td></tr>
+          <tr><td>🏁</td><td>Ended</td><td>The show's status changed <em>to</em> Ended. Fires once, at the moment the change is detected.</td></tr>
+          <tr><td>🎬</td><td>Premieres today</td><td>The next episode is Episode 1 of a new season and today is its air date.</td></tr>
+        </table>
+
+        <p class="help-p">Dismiss individual notifications with the <strong>✕</strong> button. Dismiss everything at once with <strong>"Dismiss all."</strong> Dismissals sync to Supabase — dismissed on your phone, gone on your desktop too.</p>
+
+        <h3 class="help-h3">Live Status Sections</h3>
+        <p class="help-p">These sections are computed <strong>fresh every time you open the Alerts tab</strong> from your tracked shows' current TMDB data. They show what's true right now — not events that happened. They disappear automatically when the condition is no longer true (e.g. a show stops being "Returning" because it gets cancelled).</p>
+
+        <table class="help-table">
+          <tr><th>Section</th><th>What appears</th></tr>
+          <tr><td>📅 Upcoming Episodes/Seasons</td><td>Any tracked show (not Completed) with a confirmed next-episode date within roughly the next 30 days. Shows a countdown: "Today!", "Tomorrow", "3d", "2w".</td></tr>
+          <tr><td>🚫 Cancelled or Ended</td><td>Any tracked show currently in Canceled or Ended status on TMDB.</td></tr>
+          <tr><td>✅ Currently Returning</td><td>Any tracked show currently in "Returning Series" status — renewed and confirmed to come back.</td></tr>
+        </table>
+
+        <p class="help-p">Live sections also have ✕ dismiss buttons. Unlike the notification section, these dismissals are <strong>snoozed in your browser's localStorage</strong> (not synced to Supabase), and they <strong>auto-expire</strong> when the underlying condition changes. For example if you dismiss an upcoming episode alert, it will reappear when that show's next episode date changes.</p>
+
+        <h3 class="help-h3">Key Difference: Notification vs Live Section</h3>
+        <table class="help-table">
+          <tr><th></th><th>Notifications</th><th>Live Sections</th></tr>
+          <tr><td>Represents</td><td>A change that happened</td><td>Current state right now</td></tr>
+          <tr><td>Stored in</td><td>Supabase database</td><td>Computed live each visit</td></tr>
+          <tr><td>Fires</td><td>Once per event</td><td>Every time you open Alerts</td></tr>
+          <tr><td>Dismissal synced</td><td>Yes — across devices</td><td>No — per browser only</td></tr>
+          <tr><td>Auto-expires</td><td>No — stays until dismissed</td><td>Yes — disappears when no longer true</td></tr>
+          <tr><td>Example</td><td>"Severance got renewed" (June 3)</td><td>"Severance is currently returning"</td></tr>
+        </table>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="feed">
+        <h2 class="help-h2">📋 Activity Feed</h2>
+        <p class="help-p">The Feed tab is a chronological log of everything you do in Marquee. It's shared between TV and Movies mode.</p>
+
+        <h3 class="help-h3">What Gets Logged</h3>
+        <table class="help-table">
+          <tr><th>Icon</th><th>Event</th><th>When</th></tr>
+          <tr><td>➕</td><td>Added a show</td><td>When you add any TV show to any list</td></tr>
+          <tr><td>✓</td><td>Watched an episode</td><td>When you check off an individual episode</td></tr>
+          <tr><td>🏆</td><td>Finished a season</td><td>When you click "✓ All" to mark a whole season watched</td></tr>
+          <tr><td>🔄</td><td>Moved a show</td><td>When you change a show's status (e.g. Watching → Completed)</td></tr>
+          <tr><td>🎉</td><td>Completed a series</td><td>When you move a show to the Completed list specifically</td></tr>
+          <tr><td>🗑️</td><td>Removed a show</td><td>When you delete a show from your library</td></tr>
+          <tr><td>🎬</td><td>Added a movie</td><td>When you add a movie to To Watch or Watched</td></tr>
+          <tr><td>🍿</td><td>Watched a movie</td><td>When you mark a movie as watched</td></tr>
+          <tr><td>🗑️</td><td>Removed a movie</td><td>When you delete a movie</td></tr>
+        </table>
+
+        <h3 class="help-h3">Timestamps</h3>
+        <p class="help-p">Each entry shows a relative timestamp: "just now," "2h ago," "3d ago," or a full date for older entries.</p>
+
+        <h3 class="help-h3">Clicking a Feed Item</h3>
+        <p class="help-p">Click any feed item to open that show or movie's detail panel.</p>
+
+        <h3 class="help-h3">Load More</h3>
+        <p class="help-p">The feed loads 30 items at a time. Click "Load more" at the bottom to fetch the next 30.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="stats">
+        <h2 class="help-h2">📊 Stats</h2>
+        <p class="help-p">The Stats tab shows watch statistics. TV stats appear in TV mode; Movie stats appear in Movies mode.</p>
+
+        <h3 class="help-h3">TV Stats</h3>
+        <table class="help-table">
+          <tr><th>Stat</th><th>How it's calculated</th></tr>
+          <tr><td>Shows Tracked</td><td>Total shows across all three lists (Watching + Watchlist + Completed).</td></tr>
+          <tr><td>Episodes Watched</td><td>Count of episode_progress rows marked as watched in your database.</td></tr>
+          <tr><td>Hours Watched</td><td>Episodes watched × average episode runtime from TMDB. Uses 45 minutes as a fallback for shows missing runtime data.</td></tr>
+          <tr><td>Days Watched</td><td>Same calculation, converted to 24-hour days. Shown as days when ≥1 day, hours otherwise.</td></tr>
+          <tr><td>Avg. Show Rating</td><td>Average TMDB community rating across all your tracked shows.</td></tr>
+          <tr><td>Shows Completed</td><td>Count of shows in your Completed list.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Genre Breakdown</h3>
+        <p class="help-p">A horizontal bar chart showing which genres you've watched the most episodes of. Built from the genres of each show weighted by how many episodes of that show you've watched — so a drama you've watched 50 episodes of counts more than a comedy you've watched 3 episodes of.</p>
+
+        <h3 class="help-h3">Most-Watched Shows</h3>
+        <p class="help-p">Your top 5 shows ranked by raw episode count watched. Click any entry to open the show's detail panel.</p>
+
+        <h3 class="help-h3">Biggest Commitment</h3>
+        <p class="help-p">The show in your library with the highest total episode count across all seasons — regardless of how many you've actually watched. A measure of ambition rather than completion.</p>
+
+        <h3 class="help-h3">Movie Stats</h3>
+        <table class="help-table">
+          <tr><th>Stat</th><th>How it's calculated</th></tr>
+          <tr><td>Movies Tracked</td><td>Total movies across both lists.</td></tr>
+          <tr><td>Movies Watched</td><td>Count of movies in your Watched list.</td></tr>
+          <tr><td>On To Watch List</td><td>Count of movies in your To Watch list.</td></tr>
+          <tr><td>Hours Watched</td><td>Sum of runtime (in minutes) for all watched movies ÷ 60.</td></tr>
+          <tr><td>Avg. Rating</td><td>Average TMDB rating across all watched movies.</td></tr>
+          <tr><td>Favorite Genres</td><td>Bar chart of genres from your watched movies ranked by movie count.</td></tr>
+        </table>
+
+        <h3 class="help-h3">Why might my hours count seem off?</h3>
+        <p class="help-p">TMDB's runtime data is community-maintained and occasionally missing or inaccurate for some shows. For shows with missing runtime data, Marquee uses a 45-minute fallback. The count is an estimate, not a precise measurement.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="settings">
+        <h2 class="help-h2">⚙️ Settings</h2>
+
+        <h3 class="help-h3">Opening Settings</h3>
+        <p class="help-p">Click the <strong>⚙️</strong> button in the topbar (row 1, far right). A centered modal appears.</p>
+
+        <h3 class="help-h3">Setting or Changing Your Password</h3>
+        <p class="help-p">If you signed in via magic link and want to set a password for next time — or if you want to change your existing password — you can do it here without any email round-trip:</p>
+        <ol class="help-ol">
+          <li>Enter your new password (minimum 6 characters)</li>
+          <li>Enter it again in the confirm field</li>
+          <li>Click <strong>Update Password</strong> or press Enter</li>
+        </ol>
+        <p class="help-p">You must be currently logged in for this to work — it uses Supabase's <code>updateUser</code> API which requires an active session. This is particularly useful if password-reset emails aren't working, since it sidesteps the email flow entirely.</p>
+
+        <h3 class="help-h3">Signing Out</h3>
+        <p class="help-p">Click the <strong>🚪</strong> button in the topbar. You'll be asked to confirm. After signing out, your session is cleared and you're returned to the sign-in screen.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="background-notifications">
+        <h2 class="help-h2">📧 Background Email Notifications</h2>
+        <p class="help-p">In addition to the in-app alert system, Marquee runs an automated hourly job that checks TMDB even when no one has the app open and emails you when something changes.</p>
+
+        <h3 class="help-h3">How It Works</h3>
+        <ol class="help-ol">
+          <li>Every hour, a Supabase Edge Function runs automatically on a cron schedule</li>
+          <li>It fetches current TMDB data for every tracked show across all users</li>
+          <li>It compares the current data against the last-stored snapshot for each show</li>
+          <li>If anything changed (new air date, new season, status change, etc.), it writes a new alert to the database and sends an email immediately via Resend</li>
+          <li>The snapshot is then updated to the current state, ready for next hour's comparison</li>
+        </ol>
+
+        <h3 class="help-h3">What Triggers an Email</h3>
+        <p class="help-p">Exactly the same events as the in-app dismissible notifications: season date announced, new season added, status changed, cancelled, ended, premieres today. The email is sent the same hour the change is detected — not batched into a daily digest.</p>
+
+        <h3 class="help-h3">Will I get repeat emails?</h3>
+        <p class="help-p">No. The system uses a unique <code>alert_key</code> per event with an <code>ignoreDuplicates</code> upsert. If the same event is detected again on the next hourly run (e.g. the show is still cancelled), no new alert row is created, and no email is sent. You only get one email per event.</p>
+
+        <h3 class="help-h3">What if I don't want email for a specific alert?</h3>
+        <p class="help-p">Currently there's no per-show or per-type email preference setting. If you dismiss an alert in the app, the email for that specific event has already been sent. The email and in-app systems fire simultaneously — there's no way to get in-app alerts without emails at this time.</p>
+
+        <h3 class="help-h3">Email Sender</h3>
+        <p class="help-p">Emails come from the configured FROM address on the <code>tvtracker.gregfountain.com</code> domain via Resend. If emails aren't arriving, check your spam folder and ensure the sending domain is verified in Resend.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="faq">
+        <h2 class="help-h2">❓ Frequently Asked Questions</h2>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">How often does Marquee check for new show information?</div>
+          <div class="help-faq-a">Every time you open or refresh the app, it fetches live data from TMDB for all your tracked shows. The background Edge Function also checks hourly, independently of whether you have the app open.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Why does a show show "Returning" but I haven't gotten a new season notification?</div>
+          <div class="help-faq-a">"Returning Series" just means the show is renewed — it's been that status since before you started tracking it, so there was no change to detect. Notifications only fire when something <em>changes</em> from one state to another. If you added the show while it was already "Returning," no notification fires for that.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">The episode count on my show card seems wrong.</div>
+          <div class="help-faq-a">The card-level progress uses an estimate based on TMDB metadata. Open the show's detail panel and expand the season accordions for the exact correct count per season.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Can I use Marquee on my phone?</div>
+          <div class="help-faq-a">Yes — Marquee is responsive and works in mobile browsers. The tab bar scrolls horizontally on small screens. For a more app-like experience you can add it to your home screen via your browser's "Add to Home Screen" option.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">My magic link says "expired or invalid."</div>
+          <div class="help-faq-a">This usually means the Supabase Site URL is misconfigured (pointing at localhost instead of the live app URL) or the link has already been used. Make sure the Site URL in Supabase → Authentication → URL Configuration matches your live app address. Request a fresh magic link after fixing the URL.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Can other users see my shows?</div>
+          <div class="help-faq-a">No. Row Level Security is enabled on every database table. Even if two people share the same Marquee instance, neither can read or modify the other's data — this is enforced at the PostgreSQL level, not just in JavaScript.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Where is my data stored?</div>
+          <div class="help-faq-a">In a Supabase PostgreSQL database. All show metadata (titles, posters, ratings) comes from TMDB's API and is never stored locally — only your personal data (which shows you track, episode progress, alerts, activity) lives in the database.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">What does TMDB stand for?</div>
+          <div class="help-faq-a">The Movie Database — a community-maintained database of TV shows and movies at themoviedb.org. It's free to use and powers Marquee's search, metadata, episode data, streaming providers, trailers, and curated charts.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Why is a streaming provider missing for a show I know is on Netflix?</div>
+          <div class="help-faq-a">Streaming availability data comes from TMDB's JustWatch integration. It reflects US availability and can sometimes lag behind real-world availability by a few days. TMDB's coverage is broad but not always 100% current.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Can I import my watch history from another app?</div>
+          <div class="help-faq-a">Not currently. This is a potential future feature — import from Trakt, IMDb, or a CSV.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">The help panel search isn't finding what I'm looking for.</div>
+          <div class="help-faq-a">Try shorter search terms. The search matches any text visible in the help content — so "badge" finds the Status Badges section, "dismiss" finds the Alerts section, "hours" finds the Stats section, etc.</div>
+        </div>
+
+      </section>
+
+    </div><!-- end help-content -->
+  </div><!-- end help-layout -->
+</div><!-- end help-inner -->

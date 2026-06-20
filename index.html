@@ -1591,6 +1591,229 @@
     }
     .feed-load-more:hover { color: var(--amber); }
 
+    /* HELP PANEL */
+    .help-panel {
+      background: var(--bg2);
+      width: min(860px, 100vw);
+      height: 100vh;
+      overflow-y: auto;
+      border-left: 1px solid var(--border);
+      box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+    }
+    .help-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .help-panel-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      color: var(--amber);
+    }
+    .help-inner { flex: 1; display: flex; flex-direction: column; }
+    .help-search-wrap {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+    .help-search-input {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.55rem 1rem;
+      border-radius: 50px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      transition: border-color 0.2s;
+    }
+    .help-search-input:focus { outline: none; border-color: var(--amber); }
+    .help-search-count { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+    .help-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .help-toc {
+      width: 190px;
+      flex-shrink: 0;
+      padding: 1.25rem 0.75rem;
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      max-height: calc(100vh - 130px);
+      overflow-y: auto;
+    }
+    .help-toc-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .help-toc-link {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.3rem 0.5rem;
+      border-radius: var(--radius);
+      transition: all 0.1s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .help-toc-link:hover { color: var(--amber); background: var(--amber-dim); }
+    .help-content {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      min-width: 0;
+    }
+    .help-section {
+      margin-bottom: 2.5rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .help-section:last-child { border-bottom: none; }
+    .help-section.help-hidden { display: none; }
+    .help-h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      scroll-margin-top: 1rem;
+    }
+    .help-h3 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 1.25rem 0 0.4rem;
+    }
+    .help-p {
+      font-size: 0.86rem;
+      color: var(--text-mid);
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+    .help-ul {
+      font-size: 0.86rem;
+      color: var(--text-mid);
+      line-height: 1.7;
+      padding-left: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .help-ul li { margin-bottom: 0.3rem; }
+    .help-ol {
+      font-size: 0.86rem;
+      color: var(--text-mid);
+      line-height: 1.7;
+      padding-left: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .help-ol li { margin-bottom: 0.3rem; }
+    .help-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      margin-bottom: 1rem;
+    }
+    .help-table th {
+      text-align: left;
+      background: var(--bg3);
+      padding: 0.5rem 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .help-table td {
+      padding: 0.55rem 0.75rem;
+      color: var(--text-mid);
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .help-table tr:last-child td { border-bottom: none; }
+    .help-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .help-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.18rem 0.55rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .help-badge-returning { background: rgba(76,175,130,0.15); color: var(--green); }
+    .help-badge-ended { background: rgba(122,120,128,0.15); color: var(--text-muted); }
+    .help-badge-cancelled { background: rgba(224,82,82,0.15); color: var(--red); }
+    .help-badge-production { background: rgba(245,166,35,0.15); color: var(--amber); }
+    .help-badge-planned { background: rgba(91,155,213,0.15); color: var(--blue); }
+    .help-link { color: var(--amber); text-decoration: none; }
+    .help-link:hover { text-decoration: underline; }
+    .help-faq-item {
+      margin-bottom: 1.1rem;
+      background: var(--bg3);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+    }
+    .help-faq-q {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .help-faq-a {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .help-changelog { display: flex; flex-direction: column; gap: 1.25rem; }
+    .help-change-block {
+      background: var(--bg3);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .help-change-version {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--amber);
+      margin-bottom: 0.6rem;
+    }
+    .help-search-highlight {
+      background: rgba(245,166,35,0.25);
+      border-radius: 2px;
+      color: var(--amber);
+    }
+    code {
+      background: var(--bg4);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.82em;
+      color: var(--amber);
+    }
+    @media (max-width: 640px) {
+      .help-toc { display: none; }
+      .help-panel { width: 100vw; }
+    }
+
     /* LOADING SPINNER */
     .spinner {
       display: inline-block;
@@ -1699,6 +1922,7 @@
       <span id="user-email-display" style="font-size:0.76rem;color:var(--text-muted);white-space:nowrap;display:none;"></span>
       <button class="settings-btn" onclick="handleLogout()" title="Sign Out">🚪</button>
       <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
+      <button class="settings-btn" onclick="showHelp()" title="Help">❓</button>
     </div>
     <!-- Row 2: Tabs + Discover -->
     <div class="topbar-row2" id="topbar-tabs">
@@ -1756,6 +1980,19 @@
   </div>
 </div>
 
+<!-- HELP PANEL -->
+<div class="detail-overlay" id="help-overlay" onclick="closeHelpPanel(event)">
+  <div class="help-panel" id="help-panel">
+    <div class="help-panel-header">
+      <span class="help-panel-title">❓ Marquee Help</span>
+      <button class="detail-close" style="position:static;" onclick="hideHelp()">✕</button>
+    </div>
+    <div id="help-panel-body">
+      <div style="display:flex;justify-content:center;padding:3rem;"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
 
@@ -1775,7 +2012,7 @@ let authMode = 'signin';
 let appMode = 'tv';           // 'tv' | 'movies'
 let currentTab = 'watching';
 let currentMovieTab = 'to_watch'; // 'to_watch' | 'watched'
-let currentView = 'list';
+let currentView = 'grid';
 let trackedShows = [];
 let trackedMovies = [];       // local cache [{...row, tmdb:{...}}]
 let activeAlerts = []; // local cache of undismissed alerts from the alerts table
@@ -4360,6 +4597,76 @@ function closeDetailPanel() {
 
 function closeDetail(e) {
   if (e.target === document.getElementById('detail-overlay')) closeDetailPanel();
+}
+
+// ─── HELP PANEL ───────────────────────────────────────────────────────────────
+let helpLoaded = false;
+
+async function showHelp() {
+  document.getElementById('help-overlay').classList.add('open');
+
+  if (helpLoaded) return; // already fetched and injected
+
+  try {
+    const res = await fetch('help.html');
+    if (!res.ok) throw new Error(`${res.status}`);
+    const html = await res.text();
+    document.getElementById('help-panel-body').innerHTML = html;
+    helpLoaded = true;
+
+    // Wire up TOC anchor links to scroll within the panel content
+    document.querySelectorAll('.help-toc-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  } catch (e) {
+    document.getElementById('help-panel-body').innerHTML = `
+      <div style="padding:2rem;color:var(--text-muted);text-align:center;">
+        <div style="font-size:2rem;margin-bottom:1rem;">📄</div>
+        <div>Could not load help file.</div>
+        <div style="font-size:0.8rem;margin-top:0.5rem;">Make sure <code>help.html</code> is in the same folder as <code>index.html</code>.</div>
+      </div>`;
+  }
+}
+
+function hideHelp() {
+  document.getElementById('help-overlay').classList.remove('open');
+}
+
+function closeHelpPanel(e) {
+  if (e.target === document.getElementById('help-overlay')) hideHelp();
+}
+
+function filterHelp(query) {
+  const sections = document.querySelectorAll('.help-section');
+  const countEl = document.getElementById('help-search-count');
+  const q = query.trim().toLowerCase();
+
+  if (!q) {
+    sections.forEach(s => s.classList.remove('help-hidden'));
+    if (countEl) countEl.textContent = '';
+    // Remove any existing highlights
+    document.querySelectorAll('.help-search-highlight').forEach(el => {
+      el.outerHTML = el.textContent;
+    });
+    return;
+  }
+
+  let matchCount = 0;
+  sections.forEach(section => {
+    const text = section.textContent.toLowerCase();
+    if (text.includes(q)) {
+      section.classList.remove('help-hidden');
+      matchCount++;
+    } else {
+      section.classList.add('help-hidden');
+    }
+  });
+
+  if (countEl) countEl.textContent = matchCount === 0 ? 'No results' : `${matchCount} section${matchCount !== 1 ? 's' : ''}`;
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
