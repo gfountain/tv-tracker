@@ -2613,12 +2613,6 @@ function renderRatingsPanel(body, omdb, imdbId, title, year, mediaType) {
       </div>
     </div>
 
-    ${consensus ? `
-    <div class="ratings-consensus">
-      <div class="ratings-consensus-label">🍅 Critics Consensus</div>
-      <div class="ratings-consensus-text">${esc(consensus)}</div>
-    </div>` : ''}
-
     ${!omdb ? `
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;margin-bottom:1.5rem;font-size:0.82rem;color:var(--text-muted);">
       ⚠️ OMDb ratings unavailable for this title. The TMDB score above is from Marquee's existing data.
