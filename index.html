@@ -549,15 +549,29 @@
       font-weight: 500;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
     }
     .filter-chip:hover { border-color: var(--amber); color: var(--text); }
     .filter-chip.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
     .filter-toggle-btn { display: none; } /* shown only on mobile via media query */
     @media (max-width: 640px) {
       .filter-toggle-btn { display: inline-flex !important; }
+      .filters-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px; /* prevent clipping of active border */
+      }
+      .filters-bar::-webkit-scrollbar { display: none; }
+      /* Genre chips still collapse on mobile */
       .filters-bar:not(.expanded) .filter-genre-chips { display: none; }
       .filters-bar.expanded .filter-genre-chips { display: contents; }
-      .filters-bar.expanded { max-height: 300px; }
+      .filters-bar.expanded {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        max-height: 300px;
+      }
     }
 
     /* MOBILE DRAWER */
@@ -2368,16 +2382,7 @@
       .section-header { flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; }
       .section-title { font-size: 1.05rem !important; }
 
-      /* ── Genre chips: collapse into a toggle ── */
-      .filters-bar {
-        max-height: 40px;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
-        position: relative;
-        flex-wrap: nowrap;
-        gap: 0.4rem;
-      }
-      .filters-bar.expanded { max-height: 300px; flex-wrap: wrap; }
+      /* Genre toggle button always visible on mobile */
       .filter-toggle-btn { display: inline-flex !important; flex-shrink: 0; }
       .filters-bar:not(.expanded) .filter-genre-chips { display: none; }
       .filters-bar.expanded .filter-genre-chips { display: contents; }
@@ -4252,11 +4257,11 @@ function renderShowsTab(container) {
     </div>
     <div class="filters-bar" id="filters-bar-main">
       ${showSubTabs ? `
-        <button class="filter-chip ${watchingSubView==='all'?'active':''}" onclick="setWatchingSubView('all')">All Shows</button>
+        <button class="filter-chip ${watchingSubView==='all'?'active':''}" onclick="setWatchingSubView('all')">All</button>
         <button class="filter-chip ${watchingSubView==='unwatched'?'active':''}" onclick="setWatchingSubView('unwatched')">Unwatched${badge(unwatchedShows.length,'var(--amber)')}</button>
         <button class="filter-chip ${watchingSubView==='upcoming'?'active':''}" onclick="setWatchingSubView('upcoming')">Upcoming${badge(upcomingShows.length,'var(--blue)')}</button>
-        <button class="filter-chip ${watchingSubView==='production'?'active':''}" onclick="setWatchingSubView('production')">In Production${badge(inProductionShows.length,'#9b59b6')}</button>
-        <button class="filter-chip ${watchingSubView==='ended'?'active':''}" onclick="setWatchingSubView('ended')">Ended/Cancelled${badge(endedShows.length,'var(--red)')}</button>
+        <button class="filter-chip ${watchingSubView==='production'?'active':''}" onclick="setWatchingSubView('production')">Filming${badge(inProductionShows.length,'#9b59b6')}</button>
+        <button class="filter-chip ${watchingSubView==='ended'?'active':''}" onclick="setWatchingSubView('ended')">Ended${badge(endedShows.length,'var(--red)')}</button>
       ` : ''}
       ${availableGenres.length ? `
         <button class="filter-chip filter-toggle-btn" style="display:none;border-style:dashed;" onclick="toggleFiltersBar()">
