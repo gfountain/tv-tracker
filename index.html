@@ -3725,15 +3725,27 @@ async function detectAndStoreAlerts() {
     if (prev) {
       // 1. New season date announced (didn't have a next air date before, now does)
       if (!prev.next_air_date && nextAirDate) {
+        const isSeasonPremiere = nextEpNumber === 1;
         newAlerts.push({
           tmdb_show_id: id,
           alert_type: 'season_date_announced',
-          message: `New episode date announced: S${nextEpSeason}E${nextEpNumber} airs ${formatDate(nextAirDate)}`,
+          message: `${isSeasonPremiere ? `Season ${nextEpSeason} premieres` : `S${nextEpSeason}E${nextEpNumber} airs`} ${formatDate(nextAirDate)}`,
           alert_key: `season_date:${id}:${nextEpSeason}:${nextEpNumber}:${nextAirDate}`
         });
       }
 
-      // 2. A new season number appeared (season count increased)
+      // 2. Air date changed (had one date, now a different one)
+      if (prev.next_air_date && nextAirDate && prev.next_air_date !== nextAirDate) {
+        const isSeasonPremiere = nextEpNumber === 1;
+        newAlerts.push({
+          tmdb_show_id: id,
+          alert_type: 'season_date_changed',
+          message: `${isSeasonPremiere ? `Season ${nextEpSeason} premiere` : `S${nextEpSeason}E${nextEpNumber}`} rescheduled to ${formatDate(nextAirDate)}`,
+          alert_key: `date_changed:${id}:${nextEpSeason}:${nextEpNumber}:${nextAirDate}`
+        });
+      }
+
+      // 3. A new season number appeared (season count increased)
       if (prev.number_of_seasons != null && t.number_of_seasons > prev.number_of_seasons) {
         newAlerts.push({
           tmdb_show_id: id,
@@ -3743,7 +3755,7 @@ async function detectAndStoreAlerts() {
         });
       }
 
-      // 3. Status changed (e.g. In Production -> Returning Series -> Ended/Canceled)
+      // 4. Status changes
       if (prev.status && prev.status !== t.status) {
         if (t.status === 'Canceled') {
           newAlerts.push({
@@ -3757,17 +3769,19 @@ async function detectAndStoreAlerts() {
             message: `This show has ended after ${t.number_of_seasons} season${t.number_of_seasons !== 1 ? 's' : ''}.`,
             alert_key: `status:${id}:Ended`
           });
-        } else if (t.status === 'Returning Series' && prev.status === 'In Production') {
+        } else if (t.status === 'In Production' &&
+                   ['Returning Series', 'Planned'].includes(prev.status)) {
+          newAlerts.push({
+            tmdb_show_id: id, alert_type: 'in_production',
+            message: `Now in production for a new season`,
+            alert_key: `status:${id}:InProduction:${t.number_of_seasons}`
+          });
+        } else if (t.status === 'Returning Series' &&
+                   ['In Production', 'Planned'].includes(prev.status)) {
           newAlerts.push({
             tmdb_show_id: id, alert_type: 'status_changed',
             message: `Confirmed returning for a new season`,
-            alert_key: `status:${id}:Returning`
-          });
-        } else if (t.status === 'In Production' && (prev.status === 'Returning Series' || prev.status === 'Planned')) {
-          newAlerts.push({
-            tmdb_show_id: id, alert_type: 'status_changed',
-            message: `Now in production for a new season`,
-            alert_key: `status:${id}:InProduction`
+            alert_key: `status:${id}:Returning:${t.number_of_seasons}`
           });
         }
       }
@@ -3776,13 +3790,16 @@ async function detectAndStoreAlerts() {
       // First time we've ever seen this show — no alert, just seed the snapshot.
     }
 
-    // 5. Premiere today/passed check independent of prev existing: if next_episode_to_air is ep 1 of a season and date is today
-    if (nextAirDate && nextEpNumber === 1 && nextAirDate === today.toISOString().slice(0,10)) {
+    // 5. Premieres today — any episode airing today
+    if (nextAirDate && nextAirDate === today.toISOString().slice(0,10)) {
+      const isSeasonPremiere = nextEpNumber === 1;
       newAlerts.push({
         tmdb_show_id: id,
         alert_type: 'season_premiered',
-        message: `Season ${nextEpSeason} premieres today!`,
-        alert_key: `premiere_today:${id}:${nextEpSeason}:${nextAirDate}`
+        message: isSeasonPremiere
+          ? `Season ${nextEpSeason} premieres today!`
+          : `S${nextEpSeason}E${nextEpNumber} airs today!`,
+        alert_key: `premiere_today:${id}:${nextEpSeason}:${nextEpNumber}:${nextAirDate}`
       });
     }
 
@@ -4156,21 +4173,28 @@ function renderTab() {
 }
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
-// Returns true if a show has at least one aired episode that hasn't been watched.
-// Uses the progress cache's total (which is based on last_episode_to_air) vs watched.
+// Returns true if a show has at least one aired (air_date <= today) episode
+// that hasn't been watched. Uses the progress cache for watched count vs
+// an estimated aired total based on last_episode_to_air.
 function hasUnwatchedAiredEpisodes(show) {
   const p = getLocalProgress(show);
+  if (p.total === 0 && p.watched === 0) return false;
   return p.unwatched > 0;
 }
 
-// Returns true if a show is "upcoming only" — the user is caught up on all aired
-// episodes but the show has more coming (next_episode_to_air exists).
 function isUpcomingOnly(show) {
-  const p = getLocalProgress(show);
-  const caughtUp = p.unwatched === 0 || p.watched >= p.total;
-  const hasUpcoming = !!show.tmdb?.next_episode_to_air?.air_date;
-  const isReturning = ['Returning Series', 'In Production', 'Planned'].includes(show.tmdb?.status);
-  return (caughtUp || p.total === 0) && (hasUpcoming || isReturning);
+  if (hasUnwatchedAiredEpisodes(show)) return false;
+  const nextAir = show.tmdb?.next_episode_to_air?.air_date;
+  if (!nextAir) return false;
+  return new Date(nextAir + 'T00:00:00') > new Date();
+}
+
+function isInProduction(show) {
+  return show.tmdb?.status === 'In Production';
+}
+
+function isEndedOrCancelled(show) {
+  return ['Ended', 'Canceled'].includes(show.tmdb?.status);
 }
 
 function renderShowsTab(container) {
@@ -4179,16 +4203,17 @@ function renderShowsTab(container) {
   const showSubTabs = currentTab === 'watching';
 
   // Compute sub-view counts for badges
-  const unwatchedShows = showSubTabs ? allWatching.filter(hasUnwatchedAiredEpisodes) : [];
-  const upcomingShows = showSubTabs ? allWatching.filter(s => !hasUnwatchedAiredEpisodes(s) && isUpcomingOnly(s)) : [];
+  const unwatchedShows    = showSubTabs ? allWatching.filter(hasUnwatchedAiredEpisodes) : [];
+  const upcomingShows     = showSubTabs ? allWatching.filter(isUpcomingOnly) : [];
+  const inProductionShows = showSubTabs ? allWatching.filter(isInProduction) : [];
+  const endedShows        = showSubTabs ? allWatching.filter(isEndedOrCancelled) : [];
 
   let filtered = [...allWatching];
   if (showSubTabs) {
-    if (watchingSubView === 'unwatched') {
-      filtered = unwatchedShows;
-    } else if (watchingSubView === 'upcoming') {
-      filtered = upcomingShows;
-    }
+    if (watchingSubView === 'unwatched')     filtered = unwatchedShows;
+    else if (watchingSubView === 'upcoming') filtered = upcomingShows;
+    else if (watchingSubView === 'production') filtered = inProductionShows;
+    else if (watchingSubView === 'ended')    filtered = endedShows;
   }
 
   // Genre filter
@@ -4200,10 +4225,11 @@ function renderShowsTab(container) {
   filtered = sortShows(filtered, sortBy);
 
   let html = '';
+  if (currentTab === 'watching') html += renderUpNextWidget();
 
-  if (currentTab === 'watching') {
-    html += renderUpNextWidget();
-  }
+  const badge = (count, color) => count
+    ? `<span style="background:${color};color:#fff;border-radius:50px;padding:0.05rem 0.4rem;font-size:0.68rem;font-weight:700;margin-left:3px;">${count}</span>`
+    : '';
 
   html += `
     <div class="section-header">
@@ -4213,34 +4239,32 @@ function renderShowsTab(container) {
       </div>
       <div style="display:flex;align-items:center;gap:0.6rem;">
         <select class="sort-select" onchange="setSortBy(this.value)">
-          <option value="added" ${sortBy === 'added' ? 'selected' : ''}>Recently Added</option>
-          <option value="name" ${sortBy === 'name' ? 'selected' : ''}>Name (A–Z)</option>
-          <option value="airdate" ${sortBy === 'airdate' ? 'selected' : ''}>Next Air Date</option>
-          <option value="rating" ${sortBy === 'rating' ? 'selected' : ''}>Rating</option>
+          <option value="added" ${sortBy==='added'?'selected':''}>Recently Added</option>
+          <option value="name" ${sortBy==='name'?'selected':''}>Name (A–Z)</option>
+          <option value="airdate" ${sortBy==='airdate'?'selected':''}>Next Air Date</option>
+          <option value="rating" ${sortBy==='rating'?'selected':''}>Rating</option>
         </select>
         <div class="view-toggle">
-          <button class="view-btn ${currentView === 'grid' ? 'active' : ''}" onclick="setView('grid')" title="Grid">⊞</button>
-          <button class="view-btn ${currentView === 'list' ? 'active' : ''}" onclick="setView('list')" title="List">≡</button>
+          <button class="view-btn ${currentView==='grid'?'active':''}" onclick="setView('grid')" title="Grid">⊞</button>
+          <button class="view-btn ${currentView==='list'?'active':''}" onclick="setView('list')" title="List">≡</button>
         </div>
       </div>
     </div>
     <div class="filters-bar" id="filters-bar-main">
       ${showSubTabs ? `
-        <button class="filter-chip ${watchingSubView === 'all' ? 'active' : ''}" onclick="setWatchingSubView('all')">All Shows</button>
-        <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">
-          Unwatched${unwatchedShows.length ? ` <span style="background:var(--amber);color:#0D0D0F;border-radius:50px;padding:0.05rem 0.4rem;font-size:0.7rem;font-weight:700;margin-left:3px;">${unwatchedShows.length}</span>` : ''}
-        </button>
-        <button class="filter-chip ${watchingSubView === 'upcoming' ? 'active' : ''}" onclick="setWatchingSubView('upcoming')">
-          Upcoming${upcomingShows.length ? ` <span style="background:var(--blue);color:#fff;border-radius:50px;padding:0.05rem 0.4rem;font-size:0.7rem;font-weight:700;margin-left:3px;">${upcomingShows.length}</span>` : ''}
-        </button>
+        <button class="filter-chip ${watchingSubView==='all'?'active':''}" onclick="setWatchingSubView('all')">All Shows</button>
+        <button class="filter-chip ${watchingSubView==='unwatched'?'active':''}" onclick="setWatchingSubView('unwatched')">Unwatched${badge(unwatchedShows.length,'var(--amber)')}</button>
+        <button class="filter-chip ${watchingSubView==='upcoming'?'active':''}" onclick="setWatchingSubView('upcoming')">Upcoming${badge(upcomingShows.length,'var(--blue)')}</button>
+        <button class="filter-chip ${watchingSubView==='production'?'active':''}" onclick="setWatchingSubView('production')">In Production${badge(inProductionShows.length,'#9b59b6')}</button>
+        <button class="filter-chip ${watchingSubView==='ended'?'active':''}" onclick="setWatchingSubView('ended')">Ended/Cancelled${badge(endedShows.length,'var(--red)')}</button>
       ` : ''}
       ${availableGenres.length ? `
         <button class="filter-chip filter-toggle-btn" style="display:none;border-style:dashed;" onclick="toggleFiltersBar()">
           ${genreFilter != null ? '🎭 Genre: ' + esc(availableGenres.find(g=>g.id===genreFilter)?.name||'') : '🎭 Genre ▾'}
         </button>
         <span class="filter-genre-chips">
-          <button class="filter-chip ${genreFilter == null ? 'active' : ''}" onclick="setGenreFilter(null)">All Genres</button>
-          ${availableGenres.map(g => `<button class="filter-chip ${genreFilter === g.id ? 'active' : ''}" onclick="setGenreFilter(${g.id})">${esc(g.name)}</button>`).join('')}
+          <button class="filter-chip ${genreFilter==null?'active':''}" onclick="setGenreFilter(null)">All Genres</button>
+          ${availableGenres.map(g => `<button class="filter-chip ${genreFilter===g.id?'active':''}" onclick="setGenreFilter(${g.id})">${esc(g.name)}</button>`).join('')}
         </span>
       ` : ''}
     </div>`;
@@ -4248,12 +4272,16 @@ function renderShowsTab(container) {
   container.innerHTML = html;
 
   if (!filtered.length) {
-    const emptyMsg = showSubTabs && watchingSubView === 'unwatched'
-      ? `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched aired episodes right now. Check Upcoming for what's coming next.</p></div>`
-      : showSubTabs && watchingSubView === 'upcoming'
-      ? `<div class="empty-state"><div class="icon">📅</div><h3>Nothing upcoming</h3><p>No shows waiting on new episodes. You might have episodes to watch — check Unwatched.</p></div>`
+    const msgs = {
+      unwatched:  `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched aired episodes. Check Upcoming for what's coming next.</p></div>`,
+      upcoming:   `<div class="empty-state"><div class="icon">📅</div><h3>Nothing upcoming</h3><p>No shows with a confirmed future air date.</p></div>`,
+      production: `<div class="empty-state"><div class="icon">🎬</div><h3>Nothing in production</h3><p>No tracked shows are currently being filmed.</p></div>`,
+      ended:      `<div class="empty-state"><div class="icon">📺</div><h3>None ended or cancelled</h3><p>No tracked shows have ended or been cancelled.</p></div>`,
+    };
+    const emptyMsg = (showSubTabs && msgs[watchingSubView])
+      ? msgs[watchingSubView]
       : genreFilter != null
-      ? `<div class="empty-state"><div class="icon">🔍</div><h3>No matches</h3><p>No shows in this list match that genre filter.</p></div>`
+      ? `<div class="empty-state"><div class="icon">🔍</div><h3>No matches</h3><p>No shows match that genre filter.</p></div>`
       : `<div class="empty-state"><div class="icon">📺</div><h3>Nothing here yet</h3><p>Search for a show above and add it to your ${labels[currentTab].toLowerCase()} list.</p></div>`;
     container.innerHTML += emptyMsg;
     return;
@@ -4480,16 +4508,20 @@ function showListRow(show) {
 
   const progress = getLocalProgress(show);
 
-  // Next air date
+  // Next air date — with premiere indicator for new seasons
   const nextEp = t.next_episode_to_air;
   let nextAirHtml = '';
   if (nextEp?.air_date) {
     const d = new Date(nextEp.air_date + 'T00:00:00');
     const now = new Date();
     const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+    const isSeasonPremiere = nextEp.episode_number === 1;
     const label = diff === 0 ? 'Today!' : diff === 1 ? 'Tomorrow' : diff > 0 ? `in ${diff}d` : null;
     if (label) {
-      nextAirHtml = `<div class="list-next-air">🔔 S${nextEp.season_number}E${nextEp.episode_number} airs ${label}</div>`;
+      const prefix = isSeasonPremiere
+        ? `🎬 S${nextEp.season_number} premieres`
+        : `🔔 S${nextEp.season_number}E${nextEp.episode_number} airs`;
+      nextAirHtml = `<div class="list-next-air">${prefix} ${label}</div>`;
     }
   }
 
@@ -4640,11 +4672,13 @@ function notificationRow(alert) {
   const poster = t?.poster_path ? `<img class="alert-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />` : `<div class="alert-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
   const icon = {
     season_date_announced: '📅',
-    new_season_added: '🆕',
-    cancelled: '🚫',
-    ended: '🏁',
-    status_changed: '🔄',
-    season_premiered: '🎬'
+    season_date_changed:   '📅',
+    new_season_added:      '🆕',
+    cancelled:             '🚫',
+    ended:                 '🏁',
+    status_changed:        '🔄',
+    in_production:         '🎬',
+    season_premiered:      '🎬'
   }[alert.alert_type] || '🔔';
 
   return `
