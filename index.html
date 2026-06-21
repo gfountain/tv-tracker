@@ -2908,6 +2908,10 @@ async function tmdbSimilar(showId) {
   return tmdbFetch(`/tv/${showId}/similar?language=en-US&page=1`);
 }
 
+async function tmdbRecommendations(showId) {
+  return tmdbFetch(`/tv/${showId}/recommendations?language=en-US&page=1`);
+}
+
 async function tmdbVideos(showId) {
   return tmdbFetch(`/tv/${showId}/videos?language=en-US`);
 }
@@ -2939,6 +2943,10 @@ async function tmdbMovieProviders(id) {
 
 async function tmdbMovieSimilar(id) {
   return tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`);
+}
+
+async function tmdbMovieRecommendations(id) {
+  return tmdbFetch(`/movie/${id}/recommendations?language=en-US&page=1`);
 }
 
 async function tmdbTVExternalIds(id) {
@@ -5302,15 +5310,23 @@ async function openDetailById(tmdbId) {
     let tmdb = show?.tmdb;
     if (!tmdb) tmdb = await tmdbShowDetail(tmdbId);
 
-    const [providers, similar, progress, videos, credits] = await Promise.all([
+    const [providers, similar, recommendations, progress, videos, credits] = await Promise.all([
       tmdbProviders(tmdbId).catch(() => ({})),
       tmdbSimilar(tmdbId).catch(() => ({ results: [] })),
+      tmdbRecommendations(tmdbId).catch(() => ({ results: [] })),
       show ? getEpisodeProgress(tmdbId) : Promise.resolve([]),
       tmdbVideos(tmdbId).catch(() => ({ results: [] })),
       tmdbCredits(tmdbId).catch(() => ({ cast: [], crew: [] }))
     ]);
 
-    renderDetailPanel(tmdb, show, providers, similar, progress, videos, credits);
+    // Merge similar + recommendations, deduplicate by id, rank recommendations first
+    const seen = new Set();
+    const merged = [...(recommendations.results || []), ...(similar.results || [])]
+      .filter(s => { if (seen.has(s.id)) return false; seen.add(s.id); return true; })
+      .slice(0, 12);
+    const mergedSimilar = { results: merged };
+
+    renderDetailPanel(tmdb, show, providers, mergedSimilar, progress, videos, credits);
   } catch (e) {
     console.error('openDetailById error:', e);
     document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load show details: ${esc(e.message)}</div>`;
@@ -5328,14 +5344,22 @@ async function openMovieDetailById(tmdbId) {
     let tmdb = movie?.tmdb;
     if (!tmdb) tmdb = await tmdbMovieDetail(tmdbId);
 
-    const [providers, similar, videos, credits] = await Promise.all([
+    const [providers, similar, recommendations, videos, credits] = await Promise.all([
       tmdbMovieProviders(tmdbId).catch(() => ({})),
       tmdbMovieSimilar(tmdbId).catch(() => ({ results: [] })),
+      tmdbMovieRecommendations(tmdbId).catch(() => ({ results: [] })),
       tmdbMovieVideos(tmdbId).catch(() => ({ results: [] })),
       tmdbMovieCredits(tmdbId).catch(() => ({ cast: [], crew: [] }))
     ]);
 
-    renderMovieDetailPanel(tmdb, movie, providers, similar, videos, credits);
+    // Merge recommendations first (better signal), then similar, deduplicate
+    const seen = new Set();
+    const merged = [...(recommendations.results || []), ...(similar.results || [])]
+      .filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; })
+      .slice(0, 12);
+    const mergedSimilar = { results: merged };
+
+    renderMovieDetailPanel(tmdb, movie, providers, mergedSimilar, videos, credits);
   } catch (e) {
     console.error('openMovieDetailById error:', e);
     document.getElementById('detail-body').innerHTML = `<div style="padding:2rem;color:var(--red);">Failed to load movie details: ${esc(e.message)}</div>`;
