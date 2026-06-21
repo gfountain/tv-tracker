@@ -28,6 +28,39 @@
       --radius-lg: 16px;
       --shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
+
+    /* ── LIGHT THEME ── */
+    body.theme-light {
+      --bg: #F7F5F2;
+      --bg2: #FFFFFF;
+      --bg3: #F0EDE8;
+      --bg4: #E8E4DE;
+      --border: rgba(0,0,0,0.09);
+      --amber: #D4880A;
+      --amber-dim: rgba(212,136,10,0.12);
+      --amber-glow: rgba(212,136,10,0.28);
+      --text: #1A1814;
+      --text-muted: #8A8680;
+      --text-mid: #4A4844;
+      --green: #2D8A5F;
+      --red: #C43030;
+      --blue: #2B6CB0;
+      --shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+
+    /* Light theme specific overrides */
+    body.theme-light ::-webkit-scrollbar-track { background: var(--bg3); }
+    body.theme-light ::-webkit-scrollbar-thumb { background: var(--bg4); }
+    body.theme-light .topbar { box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(0,0,0,0.06); }
+    body.theme-light .detail-panel,
+    body.theme-light .help-panel,
+    body.theme-light .ratings-panel { box-shadow: -4px 0 24px rgba(0,0,0,0.12); }
+    body.theme-light .drawer { box-shadow: 2px 0 16px rgba(0,0,0,0.12); }
+    body.theme-light .list-show-row { box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    body.theme-light .up-next-card { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    body.theme-light .ep-row-future { opacity: 0.5; }
+    body.theme-light mark.help-search-highlight { background: rgba(212,136,10,0.2); }
+    body.theme-light mark.help-search-highlight-current { background: rgba(212,136,10,0.55); color: #1A1814; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; }
     body {
@@ -2430,6 +2463,7 @@
       .mode-toggle { display: none !important; }
       #user-email-display { display: none !important; }
       .settings-btn { display: none !important; }
+      .theme-toggle-btn { display: none !important; }
 
       /* Search bar takes all available space */
       .topbar-search { flex: 1; min-width: 0; }
@@ -2589,11 +2623,12 @@
       <button class="topbar-bell-btn topbar-bell-mobile" onclick="switchTab('alerts')" title="Alerts" aria-label="Alerts" style="display:none;">
         🔔<span class="topbar-bell-dot" id="topbar-bell-dot-mobile"></span>
       </button>
-      <!-- Desktop controls -->
+      <!-- Desktop controls: Help · Settings · Theme · Email · Logout -->
+      <button class="settings-btn" onclick="showHelp()" title="Help">❓</button>
+      <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
+      <button class="settings-btn theme-toggle-btn" id="theme-toggle-btn" onclick="cycleTheme()" title="Toggle theme"></button>
       <span id="user-email-display" style="font-size:0.76rem;color:var(--text-muted);white-space:nowrap;display:none;"></span>
       <button class="settings-btn" onclick="handleLogout()" title="Sign Out">🚪</button>
-      <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
-      <button class="settings-btn" onclick="showHelp()" title="Help">❓</button>
     </div>
     <!-- Row 2: Tabs (desktop only) -->
     <div class="topbar-row2" id="topbar-tabs">
@@ -2674,6 +2709,9 @@
   </button>
 
   <div class="drawer-bottom">
+    <button class="drawer-item" onclick="cycleTheme()">
+      <span class="drawer-item-icon" id="drawer-theme-icon">🌓</span>Theme: <span id="drawer-theme-label">Auto</span>
+    </button>
     <button class="drawer-item" onclick="closeDrawer();showHelp()">
       <span class="drawer-item-icon">❓</span>Help
     </button>
@@ -2777,6 +2815,15 @@ const OMDB_KEY = 'c461a681';
 let db = null;
 let currentUser = null;
 let userPrefs = { timezone: 'America/New_York' }; // loaded from Supabase on login
+let themeMode = 'auto'; // 'auto' | 'light' | 'dark' — persisted in localStorage
+
+// Apply theme immediately to prevent flash of wrong theme
+(function() {
+  const saved = localStorage.getItem('marquee-theme') || 'auto';
+  const h = new Date().getHours();
+  const isLight = saved === 'light' || (saved === 'auto' && h >= 7 && h < 20);
+  if (isLight) document.body.classList.add('theme-light');
+})();
 let authMode = 'signin';
 let appMode = 'tv';           // 'tv' | 'movies'
 let currentTab = 'myshows';
@@ -2859,6 +2906,7 @@ async function onAuthSuccess(user) {
   const emailDisplay = document.getElementById('user-email-display');
   if (emailDisplay) { emailDisplay.textContent = user.email; emailDisplay.style.display = 'inline'; }
 
+  initTheme(); // sets button icon and starts auto-check interval
   setupSearch();
   await Promise.all([loadAllShows(), loadAllMovies(), loadUserPrefs()]);
   await refreshShowProgressCache();
@@ -2869,6 +2917,49 @@ async function onAuthSuccess(user) {
   updateAlertBell();
 
   refreshUpNextCache().then(() => { if (currentTab === 'myshows') renderTab(); });
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+const THEME_ICONS = { auto: '🌓', light: '☀️', dark: '🌙' };
+const THEME_LABELS = { auto: 'Auto (time-based)', light: 'Light', dark: 'Dark' };
+const THEME_CYCLE = { auto: 'light', light: 'dark', dark: 'auto' };
+const LIGHT_HOURS = { start: 7, end: 20 }; // 7 AM – 8 PM
+
+function isLightTime() {
+  const h = new Date().getHours();
+  return h >= LIGHT_HOURS.start && h < LIGHT_HOURS.end;
+}
+
+function applyTheme(mode) {
+  const useLightTheme = mode === 'light' || (mode === 'auto' && isLightTime());
+  document.body.classList.toggle('theme-light', useLightTheme);
+  // Update topbar button
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    btn.textContent = THEME_ICONS[mode];
+    btn.title = `Theme: ${THEME_LABELS[mode]} — click to change`;
+  }
+  // Update drawer label
+  const drawerIcon = document.getElementById('drawer-theme-icon');
+  const drawerLabel = document.getElementById('drawer-theme-label');
+  if (drawerIcon) drawerIcon.textContent = THEME_ICONS[mode];
+  if (drawerLabel) drawerLabel.textContent = THEME_LABELS[mode];
+}
+
+function cycleTheme() {
+  themeMode = THEME_CYCLE[themeMode] || 'auto';
+  localStorage.setItem('marquee-theme', themeMode);
+  applyTheme(themeMode);
+  toast(`Theme: ${THEME_LABELS[themeMode]}`);
+}
+
+function initTheme() {
+  themeMode = localStorage.getItem('marquee-theme') || 'auto';
+  applyTheme(themeMode);
+  // Re-check auto theme every 10 minutes in case time crosses boundary
+  setInterval(() => {
+    if (themeMode === 'auto') applyTheme('auto');
+  }, 10 * 60 * 1000);
 }
 
 // ─── AUTH UI ──────────────────────────────────────────────────────────────────
