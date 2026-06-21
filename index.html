@@ -5048,52 +5048,120 @@ function getLocalProgress(show) {
 // ─── ALERTS TAB ───────────────────────────────────────────────────────────────
 function renderAlerts(container) {
   const shows = trackedShows.filter(s => s.tmdb && s.status !== 'completed');
+  const today = new Date();
 
-  const upcoming = shows.filter(s => getUpcomingAlert(s.tmdb) && !isLiveAlertSnoozed(s.tmdb.id, 'upcoming', s.tmdb));
-  const cancelled = shows.filter(s => ['Canceled','Ended'].includes(s.tmdb?.status) && !isLiveAlertSnoozed(s.tmdb.id, 'ended', s.tmdb));
-  const returning = shows.filter(s => s.tmdb?.status === 'Returning Series' && !isLiveAlertSnoozed(s.tmdb.id, 'returning', s.tmdb));
+  // Airing soon — any episode within 14 days
+  const airingSoon = shows
+    .filter(s => {
+      const next = s.tmdb?.next_episode_to_air;
+      if (!next?.air_date) return false;
+      if (isLiveAlertSnoozed(s.tmdb.id, 'upcoming', s.tmdb)) return false;
+      const diff = Math.ceil((new Date(next.air_date) - today) / (1000 * 60 * 60 * 24));
+      return diff >= 0 && diff <= 14 && next.episode_number !== 1;
+    })
+    .sort((a, b) => {
+      const da = new Date(a.tmdb.next_episode_to_air.air_date);
+      const db = new Date(b.tmdb.next_episode_to_air.air_date);
+      return da - db;
+    });
 
-  const hasAnything = activeAlerts.length || upcoming.length || cancelled.length || returning.length;
+  // Season premieres — E1 within 60 days
+  const premieres = shows
+    .filter(s => {
+      const next = s.tmdb?.next_episode_to_air;
+      if (!next?.air_date) return false;
+      if (isLiveAlertSnoozed(s.tmdb.id, 'premiere', s.tmdb)) return false;
+      const diff = Math.ceil((new Date(next.air_date) - today) / (1000 * 60 * 60 * 24));
+      return diff >= 0 && diff <= 60 && next.episode_number === 1;
+    })
+    .sort((a, b) => {
+      const da = new Date(a.tmdb.next_episode_to_air.air_date);
+      const db = new Date(b.tmdb.next_episode_to_air.air_date);
+      return da - db;
+    });
+
+  const hasAnything = activeAlerts.length || airingSoon.length || premieres.length;
 
   container.innerHTML = `
     <div class="section-header"><span class="section-title">Alerts & Updates</span></div>
-    ${!hasAnything ? `<div class="empty-state"><div class="icon">🔔</div><h3>All clear</h3><p>No alerts right now. Add shows to track upcoming episodes and status changes.</p></div>` : ''}`;
+    ${!hasAnything ? `
+      <div class="empty-state">
+        <span class="icon">🔔</span>
+        <h3>All clear</h3>
+        <p>No notifications or upcoming episodes right now. Check back later!</p>
+      </div>` : ''}`;
 
+  // ── Notifications ──────────────────────────────────────────────────────────
   if (activeAlerts.length) {
     const allIds = activeAlerts.map(a => a.id);
-    container.innerHTML += `<div style="margin-bottom:1.5rem;">
-      <div class="alerts-section-head">
-        <span class="seasons-label">🔔 Notifications</span>
-        <button class="clear-section-btn" onclick="dismissAllInSection(${JSON.stringify(allIds)})">Dismiss all</button>
+    container.innerHTML += `
+      <div style="margin-bottom:1.75rem;">
+        <div class="alerts-section-head">
+          <span class="seasons-label">🔔 Notifications</span>
+          <button class="clear-section-btn" onclick="dismissAllInSection(${JSON.stringify(allIds)})">Dismiss all</button>
+        </div>
+        <div class="alerts-list">
+          ${activeAlerts.map(a => notificationRow(a)).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── Season Premieres ───────────────────────────────────────────────────────
+  if (premieres.length) {
+    container.innerHTML += `
+      <div style="margin-bottom:1.75rem;">
+        <div class="seasons-label" style="margin-bottom:0.75rem;">🎬 Season Premieres</div>
+        <div class="alerts-list">
+          ${premieres.map(s => smartAlertRow(s, 'premiere')).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── Airing Soon ────────────────────────────────────────────────────────────
+  if (airingSoon.length) {
+    container.innerHTML += `
+      <div style="margin-bottom:1.75rem;">
+        <div class="seasons-label" style="margin-bottom:0.75rem;">📅 Airing Soon</div>
+        <div class="alerts-list">
+          ${airingSoon.map(s => smartAlertRow(s, 'upcoming')).join('')}
+        </div>
+      </div>`;
+  }
+}
+
+function smartAlertRow(show, type) {
+  const t = show.tmdb;
+  const next = t.next_episode_to_air;
+  if (!next) return '';
+
+  const today = new Date();
+  const airDate = new Date(next.air_date + 'T00:00:00');
+  const diff = Math.ceil((airDate - today) / (1000 * 60 * 60 * 24));
+  const countdown = diff === 0 ? 'Today!' : diff === 1 ? 'Tomorrow' : `in ${diff}d`;
+
+  const poster = t.poster_path
+    ? `<img class="alert-poster" src="${TMDB_IMG}/w92${t.poster_path}" alt="" />`
+    : `<div class="alert-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📺</div>`;
+
+  const epLabel = type === 'premiere'
+    ? `Season ${next.season_number} Premiere`
+    : `S${next.season_number}E${next.episode_number}${next.name ? ` — ${esc(next.name)}` : ''}`;
+
+  const networkName = t.networks?.[0]?.name ? ` · ${esc(t.networks[0].name)}` : '';
+
+  return `
+    <div class="alert-row ${diff <= 1 ? 'amber-alert' : ''}" id="live-alert-${t.id}-${type}" onclick="openDetailById(${t.id})">
+      ${poster}
+      <div class="alert-info">
+        <div class="alert-show-title">${esc(t.name)}</div>
+        <div class="alert-text">${epLabel}${networkName}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">${formatDate(next.air_date)}</div>
       </div>
-      <div class="alerts-list">
-        ${activeAlerts.map(a => notificationRow(a)).join('')}
-      </div></div>`;
-  }
-
-  if (upcoming.length) {
-    container.innerHTML += `<div style="margin-bottom:1.5rem;">
-      <div class="seasons-label" style="margin-bottom:0.75rem;">📅 Upcoming Episodes / Seasons</div>
-      <div class="alerts-list">
-        ${upcoming.map(s => alertRow(s, 'upcoming')).join('')}
-      </div></div>`;
-  }
-
-  if (cancelled.length) {
-    container.innerHTML += `<div style="margin-bottom:1.5rem;">
-      <div class="seasons-label" style="margin-bottom:0.75rem;">🚫 Cancelled or Ended</div>
-      <div class="alerts-list">
-        ${cancelled.map(s => alertRow(s, 'ended')).join('')}
-      </div></div>`;
-  }
-
-  if (returning.length) {
-    container.innerHTML += `<div style="margin-bottom:1.5rem;">
-      <div class="seasons-label" style="margin-bottom:0.75rem;">✅ Currently Returning</div>
-      <div class="alerts-list">
-        ${returning.map(s => alertRow(s, 'returning')).join('')}
-      </div></div>`;
-  }
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;flex-shrink:0;">
+        <span style="font-size:0.82rem;font-weight:700;color:${diff <= 1 ? 'var(--amber)' : 'var(--text-muted)'};">${countdown}</span>
+        <button class="alert-dismiss" onclick="event.stopPropagation();snoozeLiveAlert(${t.id},'${type}',trackedShows.find(s=>s.tmdb_id===${t.id})?.tmdb)" title="Dismiss">✕</button>
+      </div>
+    </div>`;
 }
 
 function notificationRow(alert) {
@@ -5123,12 +5191,15 @@ function notificationRow(alert) {
 }
 
 function getLiveAlertSnoozeKey(showId, type, tmdb) {
-  // Key encodes enough info to auto-expire when the underlying condition changes
   if (type === 'upcoming') {
-    const airDate = tmdb.next_episode_to_air?.air_date || '';
+    const airDate = tmdb?.next_episode_to_air?.air_date || '';
     return `snooze:upcoming:${showId}:${airDate}`;
   }
-  if (type === 'ended') return `snooze:ended:${showId}:${tmdb.status}`;
+  if (type === 'premiere') {
+    const airDate = tmdb?.next_episode_to_air?.air_date || '';
+    return `snooze:premiere:${showId}:${airDate}`;
+  }
+  if (type === 'ended') return `snooze:ended:${showId}:${tmdb?.status}`;
   if (type === 'returning') return `snooze:returning:${showId}`;
   return `snooze:${type}:${showId}`;
 }
@@ -5490,24 +5561,20 @@ function renderFeedContent(container, onThisDay = null, countdown = null) {
     return;
   }
 
-  const rows = feedItems.map(item => {
+  // Build feed item rows
+  const feedRows = feedItems.map(item => {
     const cfg = typeConfig[item.activity_type] || { icon: '•', color: 'var(--text-muted)' };
     const isMovie = item.activity_type.startsWith('movie_');
-
-    // Look up poster from the appropriate cache
     const trackedItem = isMovie
       ? trackedMovies.find(m => m.tmdb_id === item.tmdb_show_id)
       : trackedShows.find(s => s.tmdb_id === item.tmdb_show_id);
-    const posterPath = trackedItem?.tmdb?.poster_path || (isMovie ? trackedItem?.tmdb?.poster_path : null);
-
+    const posterPath = trackedItem?.tmdb?.poster_path || null;
     const poster = posterPath
       ? `<img class="feed-poster" src="${TMDB_IMG}/w92${posterPath}" alt="" />`
       : `<div class="feed-icon" style="background:${cfg.color}20;border-color:${cfg.color}40;color:${cfg.color};">${cfg.icon}</div>`;
-
     const clickFn = isMovie
       ? `openMovieDetailById(${item.tmdb_show_id})`
       : `openDetailById(${item.tmdb_show_id})`;
-
     return `<div class="feed-item" onclick="${clickFn}">
       ${poster}
       <div class="feed-content">
@@ -5523,7 +5590,7 @@ function renderFeedContent(container, onThisDay = null, countdown = null) {
     const today = new Date();
     const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     const years = Object.keys(onThisDay).sort((a, b) => b - a);
-    const rows = years.map(yr => {
+    const dayRows = years.map(yr => {
       const items = onThisDay[yr].slice(0, 3);
       const yearsAgo = today.getFullYear() - yr;
       const label = yearsAgo === 1 ? '1 year ago' : `${yearsAgo} years ago`;
@@ -5542,23 +5609,23 @@ function renderFeedContent(container, onThisDay = null, countdown = null) {
     onThisDayHtml = `
       <div class="feed-widget">
         <div class="feed-widget-header">🗓 On this day — ${dateStr}</div>
-        <div class="feed-widget-body">${rows}</div>
+        <div class="feed-widget-body">${dayRows}</div>
       </div>`;
   }
 
   // Build Countdown HTML
   let countdownHtml = '';
   if (countdown && countdown.length > 0) {
-    const rows = countdown.map(item => {
+    const countdownRows = countdown.map(item => {
       const { show, nextEp, diffDays, isSeasonPremiere } = item;
-      const label = diffDays === 1 ? 'Tomorrow' : diffDays === 0 ? 'Today!' : `in ${diffDays}d`;
+      const label = diffDays === 0 ? 'Today!' : diffDays === 1 ? 'Tomorrow' : `in ${diffDays}d`;
       const epLabel = isSeasonPremiere
         ? `<span style="background:var(--amber-dim);color:var(--amber);border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:700;margin-left:4px;">PREMIERE</span>`
         : '';
       const poster = show.tmdb?.poster_path
         ? `<img src="${TMDB_IMG}/w45${show.tmdb.poster_path}" style="width:32px;height:48px;border-radius:4px;object-fit:cover;flex-shrink:0;" />`
         : `<div style="width:32px;height:48px;background:var(--bg4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">📺</div>`;
-      return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid var(--border);" onclick="openDetailById(${show.tmdb_id})" style="cursor:pointer;">
+      return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openDetailById(${show.tmdb_id})">
         ${poster}
         <div style="flex:1;min-width:0;">
           <div style="font-size:0.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(show.tmdb?.name || '')}${epLabel}</div>
@@ -5570,7 +5637,7 @@ function renderFeedContent(container, onThisDay = null, countdown = null) {
     countdownHtml = `
       <div class="feed-widget">
         <div class="feed-widget-header">📅 Coming up — next 30 days</div>
-        <div class="feed-widget-body" style="padding:0 1rem;">${rows}</div>
+        <div class="feed-widget-body" style="padding:0 1rem;">${countdownRows}</div>
       </div>`;
   }
 
@@ -5581,7 +5648,7 @@ function renderFeedContent(container, onThisDay = null, countdown = null) {
     </div>
     ${onThisDayHtml}
     ${countdownHtml}
-    <div class="feed-list">${rows}</div>
+    <div class="feed-list">${feedRows}</div>
     <div class="feed-load-more" onclick="loadMoreFeed()">Load more</div>`;
 }
 
