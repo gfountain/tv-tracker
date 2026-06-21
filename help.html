@@ -31,7 +31,7 @@
       <a class="help-toc-link" href="#ratings">Ratings & Reviews</a>
       <a class="help-toc-link" href="#discover">Discover</a>
       <a class="help-toc-link" href="#calendar">Calendar</a>
-      <a class="help-toc-link" href="#alerts">Alerts & Notifications</a>
+      <a class="help-toc-link" href="#alerts">Notifications</a>
       <a class="help-toc-link" href="#feed">Activity Feed</a>
       <a class="help-toc-link" href="#stats">Stats</a>
       <a class="help-toc-link" href="#settings">Settings</a>
@@ -50,7 +50,7 @@
         <ul class="help-ul">
           <li><strong>Light / Dark / Auto theme</strong> — a 🌓 button in the topbar cycles between Auto (time-based), ☀️ Light, and 🌙 Dark. Auto switches at 7 AM and 8 PM. Preference saved to localStorage.</li>
           <li><strong>My Shows consolidation</strong> — Watching, Watchlist, and Completed tabs merged into a single <strong>My Shows</strong> tab with seven filter chips: All, Unwatched, Upcoming, Filming, Ended, Completed, and Watchlist (visually separated).</li>
-          <li><strong>🔔 Bell in topbar</strong> — the Alerts bell moved to the topbar row 1, always visible on both desktop and mobile. Pulses red when alerts are waiting. Replaces the Alerts tab in row 2.</li>
+          <li><strong>🔔 Notification panel</strong> — the bell moved before the search bar in topbar row 1. Tapping it opens a dropdown notification panel (desktop) or full-width slide-down (mobile). Never leaves the current page. Replaces the dedicated Alerts tab entirely.</li>
           <li><strong>Topbar icon order</strong> — left to right: 🔔 Bell · ❓ Help · ⚙️ Settings · 🌓 Theme · Email · 🚪 Sign Out.</li>
           <li><strong>Toast improvements</strong> — toasts last 5 seconds, fade out smoothly, and show an <strong>Undo</strong> button after destructive actions like removing a show.</li>
           <li><strong>Back to top button</strong> — a ↑ button appears bottom-left after scrolling 400px down. Smooth scroll back to top.</li>
@@ -310,11 +310,14 @@
 
       <!-- ═══════════════════════════════════════════════════════ -->
       <section class="help-section" id="alerts">
-        <h2 class="help-h2">🔔 Alerts & Notifications</h2>
-        <p class="help-p">Accessed via the 🔔 bell in the topbar (always visible) or via the drawer on mobile. The bell pulses red when undismissed notifications exist.</p>
+        <h2 class="help-h2">🔔 Notifications</h2>
+        <p class="help-p">The 🔔 bell in the topbar (before the search bar) opens a notification panel — no page navigation required. The bell pulses red when undismissed notifications exist.</p>
 
-        <h3 class="help-h3">Dismissible Notifications</h3>
-        <p class="help-p">One-time events stored in Supabase when something changed on a tracked show. Persist across devices until dismissed.</p>
+        <h3 class="help-h3">Opening the Panel</h3>
+        <p class="help-p">Tap 🔔 anywhere in the app. A dropdown panel slides down on desktop (380px wide, anchored to the bell) or a full-width panel slides down from the top on mobile. Click anywhere outside or press Escape to close.</p>
+
+        <h3 class="help-h3">Notifications</h3>
+        <p class="help-p">One-time events stored in Supabase when something changed on a tracked show. Each shows the show poster, what happened, and when. Clicking a notification closes the panel and opens that show's detail panel. Persist across devices until dismissed.</p>
         <table class="help-table">
           <tr><th>Icon</th><th>Type</th><th>Trigger</th></tr>
           <tr><td>📅</td><td>New air date</td><td>Show had no confirmed date, now has one</td></tr>
