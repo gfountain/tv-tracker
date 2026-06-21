@@ -2300,6 +2300,21 @@
       .help-panel { width: 100vw; }
     }
 
+    /* Help search highlights */
+    mark.help-search-highlight {
+      background: rgba(245,166,35,0.25);
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+    mark.help-search-highlight-current {
+      background: rgba(245,166,35,0.7);
+      color: #0D0D0F;
+      border-radius: 2px;
+      padding: 0 1px;
+      outline: 1px solid var(--amber);
+    }
+
     /* LOADING SPINNER */
     .spinner {
       display: inline-block;
@@ -6363,42 +6378,163 @@ function initHelpScrollSpy(contentEl) {
 
 function hideHelp() {
   document.getElementById('help-overlay').classList.remove('open');
+  // Clear search state on close
+  const searchInput = document.getElementById('help-search');
+  if (searchInput && searchInput.value) {
+    searchInput.value = '';
+    clearHelpHighlights();
+    const countEl = document.getElementById('help-search-count');
+    const navEl = document.getElementById('help-search-nav');
+    if (countEl) countEl.textContent = '';
+    if (navEl) navEl.style.display = 'none';
+    // Re-init scroll spy
+    const contentEl = document.querySelector('.help-content');
+    if (contentEl) initHelpScrollSpy(contentEl);
+  }
 }
 
 function closeHelpPanel(e) {
   if (e.target === document.getElementById('help-overlay')) hideHelp();
 }
 
+// ─── HELP SEARCH — FIND IN PAGE ───────────────────────────────────────────────
+let helpSearchMatches = [];
+let helpSearchIndex = 0;
+const HELP_HIGHLIGHT_CLASS = 'help-search-highlight';
+const HELP_HIGHLIGHT_CURRENT = 'help-search-highlight-current';
+
 function filterHelp(query) {
-  const sections = document.querySelectorAll('.help-section');
+  // Clear previous highlights
+  clearHelpHighlights();
+
+  const q = query.trim();
   const countEl = document.getElementById('help-search-count');
-  const q = query.trim().toLowerCase();
+  const navEl = document.getElementById('help-search-nav');
 
   if (!q) {
-    sections.forEach(s => s.classList.remove('help-hidden'));
     if (countEl) countEl.textContent = '';
-    // Re-init scroll spy now all sections are visible
+    if (navEl) navEl.style.display = 'none';
+    // Restore scroll spy
     const contentEl = document.querySelector('.help-content');
     if (contentEl) initHelpScrollSpy(contentEl);
     return;
   }
 
-  // Disconnect scroll spy during search — active section doesn't make sense while filtering
+  // Disconnect scroll spy while searching
   if (helpScrollSpyObserver) helpScrollSpyObserver.disconnect();
   document.querySelectorAll('.help-toc-link').forEach(l => l.classList.remove('active'));
 
-  let matchCount = 0;
-  sections.forEach(section => {
-    const text = section.textContent.toLowerCase();
-    if (text.includes(q)) {
-      section.classList.remove('help-hidden');
-      matchCount++;
-    } else {
-      section.classList.add('help-hidden');
-    }
-  });
+  // Highlight all text node matches in help-content
+  const contentEl = document.getElementById('help-content');
+  if (!contentEl) return;
 
-  if (countEl) countEl.textContent = matchCount === 0 ? 'No results' : `${matchCount} section${matchCount !== 1 ? 's' : ''}`;
+  helpSearchMatches = [];
+  highlightTextNodes(contentEl, q);
+
+  const total = helpSearchMatches.length;
+
+  if (total === 0) {
+    if (countEl) countEl.textContent = 'No results';
+    if (navEl) navEl.style.display = 'none';
+    return;
+  }
+
+  helpSearchIndex = 0;
+  scrollToMatch(0);
+
+  if (countEl) countEl.textContent = `1 of ${total}`;
+  if (navEl) navEl.style.display = 'flex';
+}
+
+function highlightTextNodes(node, query) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    let idx = lowerText.indexOf(lowerQuery);
+    if (idx === -1) return;
+
+    const frag = document.createDocumentFragment();
+    let lastIdx = 0;
+
+    while (idx !== -1) {
+      // Text before match
+      if (idx > lastIdx) {
+        frag.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
+      }
+      // Highlighted match
+      const mark = document.createElement('mark');
+      mark.className = HELP_HIGHLIGHT_CLASS;
+      mark.textContent = text.slice(idx, idx + query.length);
+      frag.appendChild(mark);
+      helpSearchMatches.push(mark);
+      lastIdx = idx + query.length;
+      idx = lowerText.indexOf(lowerQuery, lastIdx);
+    }
+
+    // Text after last match
+    if (lastIdx < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+    }
+
+    node.parentNode.replaceChild(frag, node);
+  } else if (
+    node.nodeType === Node.ELEMENT_NODE &&
+    node.nodeName !== 'SCRIPT' &&
+    node.nodeName !== 'STYLE' &&
+    node.nodeName !== 'INPUT' &&
+    !node.classList.contains(HELP_HIGHLIGHT_CLASS)
+  ) {
+    // Process children — iterate over a static copy since we're modifying the DOM
+    Array.from(node.childNodes).forEach(child => highlightTextNodes(child, query));
+  }
+}
+
+function clearHelpHighlights() {
+  const content = document.getElementById('help-content');
+  if (!content) return;
+  // Replace each <mark> with its text content
+  content.querySelectorAll(`mark.${HELP_HIGHLIGHT_CLASS}`).forEach(mark => {
+    const text = document.createTextNode(mark.textContent);
+    mark.parentNode.replaceChild(text, mark);
+  });
+  // Normalize merges adjacent text nodes created by the replacement
+  content.normalize();
+  helpSearchMatches = [];
+  helpSearchIndex = 0;
+}
+
+function scrollToMatch(idx) {
+  if (!helpSearchMatches.length) return;
+  // Remove current highlight from all
+  helpSearchMatches.forEach(m => m.classList.remove(HELP_HIGHLIGHT_CURRENT));
+  // Set current
+  const current = helpSearchMatches[idx];
+  if (!current) return;
+  current.classList.add(HELP_HIGHLIGHT_CURRENT);
+  // Scroll the help-content div to show this match
+  const contentEl = document.querySelector('.help-content');
+  if (contentEl) {
+    const markTop = current.getBoundingClientRect().top;
+    const contentTop = contentEl.getBoundingClientRect().top;
+    const offset = markTop - contentTop + contentEl.scrollTop - 80; // 80px padding from top
+    contentEl.scrollTo({ top: offset, behavior: 'smooth' });
+  }
+  // Update count
+  const countEl = document.getElementById('help-search-count');
+  if (countEl) countEl.textContent = `${idx + 1} of ${helpSearchMatches.length}`;
+}
+
+function helpSearchNext() {
+  if (!helpSearchMatches.length) return;
+  helpSearchIndex = (helpSearchIndex + 1) % helpSearchMatches.length;
+  scrollToMatch(helpSearchIndex);
+}
+
+function helpSearchPrev() {
+  if (!helpSearchMatches.length) return;
+  helpSearchIndex = (helpSearchIndex - 1 + helpSearchMatches.length) % helpSearchMatches.length;
+  scrollToMatch(helpSearchIndex);
 }
 
 // ─── USER PREFERENCES ─────────────────────────────────────────────────────────
