@@ -2722,7 +2722,7 @@ let hideWatchedEpisodesMap = {}; // { [showId]: boolean } whether to hide watche
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
-let watchingSubView = 'unwatched'; // 'all' | 'unwatched'
+let watchingSubView = 'unwatched'; // 'all' | 'unwatched' | 'upcoming'
 let showProgressCache = {}; // { [showId]: { watched, total, pct } } — aggregate progress across all aired episodes
 let sortBy = 'name';
 let genreFilter = null;
@@ -3615,7 +3615,7 @@ function estimateAiredTotal(tmdb) {
 // For each "Watching" show with unwatched aired episodes, finds the earliest
 // unwatched episode (in air-date order) so you know exactly what to watch next.
 async function refreshUpNextCache() {
-  const watchingShows = trackedShows.filter(s => s.status === 'watching' && s.tmdb && (getLocalProgress(s).unwatched || 0) > 0);
+  const watchingShows = trackedShows.filter(s => s.status === 'watching' && s.tmdb && hasUnwatchedAiredEpisodes(s));
   const today = new Date();
 
   const results = await Promise.all(watchingShows.map(async show => {
@@ -4156,16 +4156,42 @@ function renderTab() {
 }
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
-function renderShowsTab(container) {
-  let filtered = trackedShows.filter(s => s.status === currentTab);
-  const labels = { watching: 'Currently Watching', watchlist: 'Want to Watch', completed: 'Completed' };
+// Returns true if a show has at least one aired episode that hasn't been watched.
+// Uses the progress cache's total (which is based on last_episode_to_air) vs watched.
+function hasUnwatchedAiredEpisodes(show) {
+  const p = getLocalProgress(show);
+  return p.unwatched > 0;
+}
 
+// Returns true if a show is "upcoming only" — the user is caught up on all aired
+// episodes but the show has more coming (next_episode_to_air exists).
+function isUpcomingOnly(show) {
+  const p = getLocalProgress(show);
+  const caughtUp = p.unwatched === 0 || p.watched >= p.total;
+  const hasUpcoming = !!show.tmdb?.next_episode_to_air?.air_date;
+  const isReturning = ['Returning Series', 'In Production', 'Planned'].includes(show.tmdb?.status);
+  return (caughtUp || p.total === 0) && (hasUpcoming || isReturning);
+}
+
+function renderShowsTab(container) {
+  const allWatching = trackedShows.filter(s => s.status === currentTab);
+  const labels = { watching: 'Currently Watching', watchlist: 'Want to Watch', completed: 'Completed' };
   const showSubTabs = currentTab === 'watching';
-  if (showSubTabs && watchingSubView === 'unwatched') {
-    filtered = filtered.filter(s => (getLocalProgress(s).unwatched || 0) > 0);
+
+  // Compute sub-view counts for badges
+  const unwatchedShows = showSubTabs ? allWatching.filter(hasUnwatchedAiredEpisodes) : [];
+  const upcomingShows = showSubTabs ? allWatching.filter(s => !hasUnwatchedAiredEpisodes(s) && isUpcomingOnly(s)) : [];
+
+  let filtered = [...allWatching];
+  if (showSubTabs) {
+    if (watchingSubView === 'unwatched') {
+      filtered = unwatchedShows;
+    } else if (watchingSubView === 'upcoming') {
+      filtered = upcomingShows;
+    }
   }
 
-  // Genre filter — built from genres actually present across this tab's shows
+  // Genre filter
   const availableGenres = getAvailableGenres(trackedShows.filter(s => s.status === currentTab));
   if (genreFilter != null) {
     filtered = filtered.filter(s => (s.tmdb?.genres || []).some(g => g.id === genreFilter));
@@ -4175,7 +4201,6 @@ function renderShowsTab(container) {
 
   let html = '';
 
-  // Up Next widget — only on the Watching tab, shows the next unwatched episode per show
   if (currentTab === 'watching') {
     html += renderUpNextWidget();
   }
@@ -4202,7 +4227,12 @@ function renderShowsTab(container) {
     <div class="filters-bar" id="filters-bar-main">
       ${showSubTabs ? `
         <button class="filter-chip ${watchingSubView === 'all' ? 'active' : ''}" onclick="setWatchingSubView('all')">All Shows</button>
-        <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">Unwatched Episodes</button>
+        <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">
+          Unwatched${unwatchedShows.length ? ` <span style="background:var(--amber);color:#0D0D0F;border-radius:50px;padding:0.05rem 0.4rem;font-size:0.7rem;font-weight:700;margin-left:3px;">${unwatchedShows.length}</span>` : ''}
+        </button>
+        <button class="filter-chip ${watchingSubView === 'upcoming' ? 'active' : ''}" onclick="setWatchingSubView('upcoming')">
+          Upcoming${upcomingShows.length ? ` <span style="background:var(--blue);color:#fff;border-radius:50px;padding:0.05rem 0.4rem;font-size:0.7rem;font-weight:700;margin-left:3px;">${upcomingShows.length}</span>` : ''}
+        </button>
       ` : ''}
       ${availableGenres.length ? `
         <button class="filter-chip filter-toggle-btn" style="display:none;border-style:dashed;" onclick="toggleFiltersBar()">
@@ -4218,8 +4248,10 @@ function renderShowsTab(container) {
   container.innerHTML = html;
 
   if (!filtered.length) {
-    const emptyMsg = (showSubTabs && watchingSubView === 'unwatched')
-      ? `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched episodes across your watching list.</p></div>`
+    const emptyMsg = showSubTabs && watchingSubView === 'unwatched'
+      ? `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched aired episodes right now. Check Upcoming for what's coming next.</p></div>`
+      : showSubTabs && watchingSubView === 'upcoming'
+      ? `<div class="empty-state"><div class="icon">📅</div><h3>Nothing upcoming</h3><p>No shows waiting on new episodes. You might have episodes to watch — check Unwatched.</p></div>`
       : genreFilter != null
       ? `<div class="empty-state"><div class="icon">🔍</div><h3>No matches</h3><p>No shows in this list match that genre filter.</p></div>`
       : `<div class="empty-state"><div class="icon">📺</div><h3>Nothing here yet</h3><p>Search for a show above and add it to your ${labels[currentTab].toLowerCase()} list.</p></div>`;
@@ -4426,7 +4458,7 @@ function showCard(show) {
         <div class="show-card-meta">
           ${badge}
           <span>${t.first_air_date?.slice(0,4) || '—'}</span>
-          ${watchingSubView === 'unwatched' && progress.unwatched > 0 ? `<span style="color:var(--amber);font-weight:600;">${progress.unwatched} new</span>` : ''}
+          ${watchingSubView === 'unwatched' && hasUnwatchedAiredEpisodes(show) ? `<span style="color:var(--amber);font-weight:600;">${progress.unwatched} new</span>` : ''}
         </div>
         ${progress.total > 0 ? `
         <div class="progress-bar-wrap">
