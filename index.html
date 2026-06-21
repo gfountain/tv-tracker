@@ -234,7 +234,37 @@
     .alert-dot.show { display: block; animation: alertFlash 1.4s ease-in-out infinite; }
     @keyframes alertFlash {
       0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(224,82,82,0.6); }
-      50% { opacity: 0.6; transform: scale(1.25); box-shadow: 0 0 0 4px rgba(224,82,82,0); }
+      50% { opacity: 0.8; transform: scale(1.3); box-shadow: 0 0 0 5px rgba(224,82,82,0); }
+    }
+    /* Bell in topbar row 1 — desktop always visible */
+    .topbar-bell-desktop {
+      display: flex !important;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.15rem;
+      padding: 0.25rem 0.4rem;
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      position: relative;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .topbar-bell-desktop:hover { color: var(--amber); }
+    .topbar-bell-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+      display: none;
+      flex-shrink: 0;
+      border: 1.5px solid var(--bg);
+    }
+    .topbar-bell-dot.show {
+      display: block;
+      animation: alertFlash 1.4s ease-in-out infinite;
     }
 
     /* STREAMING ICONS IN LIST ROW */
@@ -553,6 +583,19 @@
     }
     .filter-chip:hover { border-color: var(--amber); color: var(--text); }
     .filter-chip.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
+    .filter-chip-watchlist {
+      border-style: dashed;
+      opacity: 0.8;
+    }
+    .filter-chip-watchlist.active { opacity: 1; }
+    .filter-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      flex-shrink: 0;
+      align-self: center;
+      margin: 0 0.15rem;
+    }
     .filter-toggle-btn { display: none; } /* shown only on mobile via media query */
     @media (max-width: 640px) {
       .filter-toggle-btn { display: inline-flex !important; }
@@ -2377,9 +2420,11 @@
       }
       .logo { font-size: 1.05rem; flex-shrink: 0; }
 
-      /* Show hamburger and bell on mobile */
+      /* Show hamburger on mobile */
       .hamburger-btn { display: flex; }
-      .topbar-bell-btn { display: block; }
+      /* Desktop bell hidden on mobile — mobile bell shown instead */
+      .topbar-bell-desktop { display: none !important; }
+      .topbar-bell-mobile { display: block !important; }
 
       /* Hide desktop-only elements from row 1 */
       .mode-toggle { display: none !important; }
@@ -2518,7 +2563,7 @@
 <!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
-    <!-- Row 1: Hamburger (mobile) + Logo + Mode (desktop) + Search + Bell (mobile) + Controls (desktop) -->
+    <!-- Row 1: Hamburger (mobile) + Logo + Mode (desktop) + Search + Bell + User controls -->
     <div class="topbar-row1">
       <button class="hamburger-btn" onclick="openDrawer()" aria-label="Open menu">
         <span></span><span></span><span></span>
@@ -2536,21 +2581,23 @@
           <div id="search-results"></div>
         </div>
       </div>
-      <!-- Bell visible on mobile only -->
-      <button class="topbar-bell-btn" onclick="switchTab('alerts')" title="Alerts" aria-label="Alerts">
+      <!-- Bell — desktop and mobile -->
+      <button class="topbar-bell-btn topbar-bell-desktop" onclick="switchTab('alerts')" title="Alerts" aria-label="Alerts">
         🔔<span class="topbar-bell-dot" id="topbar-bell-dot"></span>
       </button>
-      <!-- Desktop controls hidden on mobile -->
+      <!-- Mobile bell (kept for mobile only via CSS) -->
+      <button class="topbar-bell-btn topbar-bell-mobile" onclick="switchTab('alerts')" title="Alerts" aria-label="Alerts" style="display:none;">
+        🔔<span class="topbar-bell-dot" id="topbar-bell-dot-mobile"></span>
+      </button>
+      <!-- Desktop controls -->
       <span id="user-email-display" style="font-size:0.76rem;color:var(--text-muted);white-space:nowrap;display:none;"></span>
       <button class="settings-btn" onclick="handleLogout()" title="Sign Out">🚪</button>
       <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
       <button class="settings-btn" onclick="showHelp()" title="Help">❓</button>
     </div>
-    <!-- Row 2: Tabs + Discover (desktop only — hidden on mobile) -->
+    <!-- Row 2: Tabs (desktop only) -->
     <div class="topbar-row2" id="topbar-tabs">
-      <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
-      <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
-      <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <button class="tab-btn active" onclick="switchTab('myshows')">My Shows</button>
       <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
@@ -2559,8 +2606,6 @@
         <button class="discover-btn" id="discover-btn" onclick="toggleDiscoverMenu()">🔭 Discover ▾</button>
         <div class="discover-dropdown" id="discover-dropdown"></div>
       </div>
-      <div class="tab-divider"></div>
-      <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>
     </div>
   </div>
 
@@ -2583,14 +2628,8 @@
 
   <div class="drawer-section-label">My Shows</div>
   <div id="drawer-nav-items">
-    <button class="drawer-item" id="drawer-watching" onclick="drawerNav('watching')">
-      <span class="drawer-item-icon">👁</span>Watching
-    </button>
-    <button class="drawer-item" id="drawer-watchlist" onclick="drawerNav('watchlist')">
-      <span class="drawer-item-icon">📋</span>Watchlist
-    </button>
-    <button class="drawer-item" id="drawer-completed" onclick="drawerNav('completed')">
-      <span class="drawer-item-icon">✓</span>Completed
+    <button class="drawer-item active" id="drawer-myshows" onclick="drawerNav('myshows')">
+      <span class="drawer-item-icon">📺</span>My Shows
     </button>
   </div>
 
@@ -2740,7 +2779,7 @@ let currentUser = null;
 let userPrefs = { timezone: 'America/New_York' }; // loaded from Supabase on login
 let authMode = 'signin';
 let appMode = 'tv';           // 'tv' | 'movies'
-let currentTab = 'watching';
+let currentTab = 'myshows';
 let currentMovieTab = 'to_watch'; // 'to_watch' | 'watched'
 let currentView = 'list';
 let trackedShows = [];
@@ -2829,7 +2868,7 @@ async function onAuthSuccess(user) {
   renderTab();
   updateAlertBell();
 
-  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
+  refreshUpNextCache().then(() => { if (currentTab === 'myshows') renderTab(); });
 }
 
 // ─── AUTH UI ──────────────────────────────────────────────────────────────────
@@ -3843,7 +3882,7 @@ async function markUpNextWatched(showId, seasonNum, epNum, btn) {
   // Rebuild Up Next — this show will advance to its next unwatched episode
   await refreshUpNextCache();
   // Re-render just the Watching tab content if we're on it
-  if (currentTab === 'watching') renderTab();
+  if (currentTab === 'myshows') renderTab();
   toast('Episode marked as watched ✓');
 }
 
@@ -4135,7 +4174,7 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
       btn.disabled = false;
     }
     await logActivity('show_added', tmdbId);
-    refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
+    refreshUpNextCache().then(() => { if (currentTab === 'myshows') renderTab(); });
   } catch (e) {
     toast('Failed to add show', true);
     if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
@@ -4154,7 +4193,7 @@ async function updateShowStatus(tmdbId, status) {
     tmdbId,
     { meta: { old_status: oldStatus, new_status: status } }
   );
-  refreshUpNextCache().then(() => { if (currentTab === 'watching') renderTab(); });
+  refreshUpNextCache().then(() => { if (currentTab === 'myshows') renderTab(); });
 }
 
 async function removeShow(tmdbId) {
@@ -4243,9 +4282,7 @@ function setAppMode(mode) {
 
   if (mode === 'tv') {
     tabsEl.innerHTML = `
-      <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
-      <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
-      <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+      <button class="tab-btn active" onclick="switchTab('myshows')">My Shows</button>
       <div class="tab-divider"></div>
       <button class="tab-btn" onclick="switchTab('feed')">📋 Feed</button>
       <button class="tab-btn" onclick="switchTab('calendar')">📆 Calendar</button>
@@ -4253,11 +4290,9 @@ function setAppMode(mode) {
       <div class="discover-wrap">
         <button class="discover-btn" id="discover-btn" onclick="toggleDiscoverMenu()">🔭 Discover ▾</button>
         <div class="discover-dropdown" id="discover-dropdown"></div>
-      </div>
-      <div class="tab-divider"></div>
-      <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
+      </div>`;
     searchInput.placeholder = 'Search for a TV show…';
-    currentTab = 'watching';
+    currentTab = 'myshows';
   } else {
     tabsEl.innerHTML = `
       <button class="tab-btn active" onclick="switchMovieTab('to_watch')">To Watch</button>
@@ -4269,9 +4304,7 @@ function setAppMode(mode) {
       <div class="discover-wrap">
         <button class="discover-btn" id="discover-btn" onclick="toggleDiscoverMenu()">🔭 Discover ▾</button>
         <div class="discover-dropdown" id="discover-dropdown"></div>
-      </div>
-      <div class="tab-divider"></div>
-      <button class="tab-btn" onclick="switchTab('alerts')"><span class="alert-tab-wrap">🔔 Alerts<span class="alert-dot" id="alert-dot"></span></span></button>`;
+      </div>`;
     searchInput.placeholder = 'Search for a movie…';
     currentMovieTab = 'to_watch';
   }
@@ -4289,14 +4322,27 @@ function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(btn => {
     const onclick = btn.getAttribute('onclick') || '';
-    const isThisTab = onclick.includes(`switchTab('${tab}')`);
-    btn.classList.toggle('active', isThisTab);
+    btn.classList.toggle('active', onclick.includes(`switchTab('${tab}')`));
   });
   const dbtn = document.getElementById('discover-btn');
   if (dbtn) dbtn.classList.remove('active');
   closeDiscoverMenu();
   updateDrawerActiveState();
   renderTab();
+}
+
+// Update all alert indicators — topbar bell dots (desktop + mobile) and drawer dot
+function updateAlertBell() {
+  const hasAlerts = activeAlerts.length > 0;
+  // Desktop topbar bell dot
+  const bellDot = document.getElementById('topbar-bell-dot');
+  if (bellDot) bellDot.classList.toggle('show', hasAlerts);
+  // Mobile topbar bell dot
+  const mobileDot = document.getElementById('topbar-bell-dot-mobile');
+  if (mobileDot) mobileDot.classList.toggle('show', hasAlerts);
+  // Drawer alert dot
+  const drawerDot = document.getElementById('drawer-alert-dot');
+  if (drawerDot) drawerDot.classList.toggle('show', hasAlerts);
 }
 
 function switchMovieTab(tab) {
@@ -4322,8 +4368,8 @@ function renderTab() {
     else renderMoviesTab(el);
     return;
   }
-  if (currentTab === 'stats') renderStats(el);
-  else renderShowsTab(el);
+  if (currentTab === 'stats') { renderStats(el); return; }
+  renderShowsTab(el); // myshows — all show statuses in one tab
 }
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
@@ -4352,43 +4398,52 @@ function isEndedOrCancelled(show) {
 }
 
 function renderShowsTab(container) {
-  const allWatching = trackedShows.filter(s => s.status === currentTab);
-  const labels = { watching: 'Currently Watching', watchlist: 'Want to Watch', completed: 'Completed' };
-  const showSubTabs = currentTab === 'watching';
+  // All shows across all statuses
+  const allShows = trackedShows.filter(s => s.tmdb);
+  const watchingShows = allShows.filter(s => s.status === 'watching');
 
-  // Compute sub-view counts for badges
-  const unwatchedShows    = showSubTabs ? allWatching.filter(hasUnwatchedAiredEpisodes) : [];
-  const upcomingShows     = showSubTabs ? allWatching.filter(isUpcomingOnly) : [];
-  const inProductionShows = showSubTabs ? allWatching.filter(isInProduction) : [];
-  const endedShows        = showSubTabs ? allWatching.filter(isEndedOrCancelled) : [];
+  // Compute filter counts
+  const unwatchedShows    = watchingShows.filter(hasUnwatchedAiredEpisodes);
+  const upcomingShows     = watchingShows.filter(isUpcomingOnly);
+  const inProductionShows = watchingShows.filter(isInProduction);
+  const endedShows        = watchingShows.filter(isEndedOrCancelled);
+  const completedShows    = allShows.filter(s => s.status === 'completed');
+  const watchlistShows    = allShows.filter(s => s.status === 'watchlist');
 
-  let filtered = [...allWatching];
-  if (showSubTabs) {
-    if (watchingSubView === 'unwatched')     filtered = unwatchedShows;
-    else if (watchingSubView === 'upcoming') filtered = upcomingShows;
-    else if (watchingSubView === 'production') filtered = inProductionShows;
-    else if (watchingSubView === 'ended')    filtered = endedShows;
+  // Filter the display list based on sub-view
+  let filtered;
+  switch (watchingSubView) {
+    case 'unwatched':   filtered = unwatchedShows; break;
+    case 'upcoming':    filtered = upcomingShows; break;
+    case 'production':  filtered = inProductionShows; break;
+    case 'ended':       filtered = endedShows; break;
+    case 'completed':   filtered = completedShows; break;
+    case 'watchlist':   filtered = watchlistShows; break;
+    default:            filtered = allShows; break; // 'all'
   }
 
-  // Genre filter
-  const availableGenres = getAvailableGenres(trackedShows.filter(s => s.status === currentTab));
+  // Genre filter — built from all shows in current sub-view
+  const availableGenres = getAvailableGenres(filtered);
   if (genreFilter != null) {
     filtered = filtered.filter(s => (s.tmdb?.genres || []).some(g => g.id === genreFilter));
   }
 
   filtered = sortShows(filtered, sortBy);
 
-  let html = '';
-  if (currentTab === 'watching') html += renderUpNextWidget();
-
   const badge = (count, color) => count
     ? `<span style="background:${color};color:#fff;border-radius:50px;padding:0.05rem 0.4rem;font-size:0.68rem;font-weight:700;margin-left:3px;">${count}</span>`
     : '';
 
+  // Show Up Next only when on unwatched or all sub-views
+  let html = '';
+  if (watchingSubView === 'unwatched' || watchingSubView === 'all') {
+    html += renderUpNextWidget();
+  }
+
   html += `
     <div class="section-header">
       <div style="display:flex;align-items:center;gap:0.5rem;">
-        <span class="section-title">${labels[currentTab]}</span>
+        <span class="section-title">My Shows</span>
         <span class="section-count">${filtered.length}</span>
       </div>
       <div style="display:flex;align-items:center;gap:0.6rem;">
@@ -4405,16 +4460,17 @@ function renderShowsTab(container) {
       </div>
     </div>
     <div class="filters-bar" id="filters-bar-main">
-      ${showSubTabs ? `
-        <button class="filter-chip ${watchingSubView==='all'?'active':''}" onclick="setWatchingSubView('all')">All</button>
-        <button class="filter-chip ${watchingSubView==='unwatched'?'active':''}" onclick="setWatchingSubView('unwatched')">Unwatched${badge(unwatchedShows.length,'var(--amber)')}</button>
-        <button class="filter-chip ${watchingSubView==='upcoming'?'active':''}" onclick="setWatchingSubView('upcoming')">Upcoming${badge(upcomingShows.length,'var(--blue)')}</button>
-        <button class="filter-chip ${watchingSubView==='production'?'active':''}" onclick="setWatchingSubView('production')">Filming${badge(inProductionShows.length,'#9b59b6')}</button>
-        <button class="filter-chip ${watchingSubView==='ended'?'active':''}" onclick="setWatchingSubView('ended')">Ended${badge(endedShows.length,'var(--red)')}</button>
-      ` : ''}
+      <button class="filter-chip ${watchingSubView==='all'?'active':''}" onclick="setWatchingSubView('all')">All${badge(allShows.length,'var(--text-muted)')}</button>
+      <button class="filter-chip ${watchingSubView==='unwatched'?'active':''}" onclick="setWatchingSubView('unwatched')">Unwatched${badge(unwatchedShows.length,'var(--amber)')}</button>
+      <button class="filter-chip ${watchingSubView==='upcoming'?'active':''}" onclick="setWatchingSubView('upcoming')">Upcoming${badge(upcomingShows.length,'var(--blue)')}</button>
+      <button class="filter-chip ${watchingSubView==='production'?'active':''}" onclick="setWatchingSubView('production')">Filming${badge(inProductionShows.length,'#9b59b6')}</button>
+      <button class="filter-chip ${watchingSubView==='ended'?'active':''}" onclick="setWatchingSubView('ended')">Ended${badge(endedShows.length,'var(--red)')}</button>
+      <button class="filter-chip ${watchingSubView==='completed'?'active':''}" onclick="setWatchingSubView('completed')">Completed${badge(completedShows.length,'var(--green)')}</button>
+      <span class="filter-divider"></span>
+      <button class="filter-chip filter-chip-watchlist ${watchingSubView==='watchlist'?'active':''}" onclick="setWatchingSubView('watchlist')">Watchlist${badge(watchlistShows.length,'var(--text-muted)')}</button>
       ${availableGenres.length ? `
         <button class="filter-chip filter-toggle-btn" style="display:none;border-style:dashed;" onclick="toggleFiltersBar()">
-          ${genreFilter != null ? '🎭 Genre: ' + esc(availableGenres.find(g=>g.id===genreFilter)?.name||'') : '🎭 Genre ▾'}
+          ${genreFilter != null ? '🎭 ' + esc(availableGenres.find(g=>g.id===genreFilter)?.name||'') : '🎭 Genre ▾'}
         </button>
         <span class="filter-genre-chips">
           <button class="filter-chip ${genreFilter==null?'active':''}" onclick="setGenreFilter(null)">All Genres</button>
@@ -4427,17 +4483,15 @@ function renderShowsTab(container) {
 
   if (!filtered.length) {
     const msgs = {
-      unwatched:  `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched aired episodes. Check Upcoming for what's coming next.</p></div>`,
+      all:        `<div class="empty-state"><div class="icon">📺</div><h3>No shows yet</h3><p>Search for a show above to start tracking.</p></div>`,
+      unwatched:  `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched aired episodes right now. Check Upcoming for what's coming next.</p></div>`,
       upcoming:   `<div class="empty-state"><div class="icon">📅</div><h3>Nothing upcoming</h3><p>No shows with a confirmed future air date.</p></div>`,
-      production: `<div class="empty-state"><div class="icon">🎬</div><h3>Nothing in production</h3><p>No tracked shows are currently being filmed.</p></div>`,
+      production: `<div class="empty-state"><div class="icon">🎬</div><h3>Nothing filming</h3><p>No tracked shows are currently in production.</p></div>`,
       ended:      `<div class="empty-state"><div class="icon">📺</div><h3>None ended or cancelled</h3><p>No tracked shows have ended or been cancelled.</p></div>`,
+      completed:  `<div class="empty-state"><div class="icon">🏆</div><h3>Nothing completed yet</h3><p>Shows move here automatically when you finish watching an ended series.</p></div>`,
+      watchlist:  `<div class="empty-state"><div class="icon">📋</div><h3>Watchlist is empty</h3><p>Search for shows and add them to your Watchlist.</p></div>`,
     };
-    const emptyMsg = (showSubTabs && msgs[watchingSubView])
-      ? msgs[watchingSubView]
-      : genreFilter != null
-      ? `<div class="empty-state"><div class="icon">🔍</div><h3>No matches</h3><p>No shows match that genre filter.</p></div>`
-      : `<div class="empty-state"><div class="icon">📺</div><h3>Nothing here yet</h3><p>Search for a show above and add it to your ${labels[currentTab].toLowerCase()} list.</p></div>`;
-    container.innerHTML += emptyMsg;
+    container.innerHTML += msgs[watchingSubView] || msgs.all;
     return;
   }
 
@@ -6141,7 +6195,7 @@ async function toggleEpisode(showId, seasonNum, epNum) {
     await checkAutoComplete(showId);
   }
   refreshUpNextCache().then(() => {
-    if (currentTab === 'watching' && (currentView !== 'list' || expandedListRows.size === 0)) {
+    if (currentTab === 'myshows' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
     }
   });
@@ -6175,7 +6229,7 @@ async function markSeason(showId, seasonNum, watched) {
     await checkAutoComplete(showId);
   }
   refreshUpNextCache().then(() => {
-    if (currentTab === 'watching' && (currentView !== 'list' || expandedListRows.size === 0)) {
+    if (currentTab === 'myshows' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
     }
   });
@@ -6263,9 +6317,6 @@ function drawerNav(tab) {
     switchMovieTab(tab);
     return;
   }
-  if (appMode === 'movies' && (tab === 'watching' || tab === 'watchlist' || tab === 'completed')) {
-    setAppMode('tv');
-  }
   switchTab(tab);
 }
 
@@ -6321,35 +6372,24 @@ function updateDrawerNavItems() {
       </button>`;
   } else {
     navEl.innerHTML = `
-      <button class="drawer-item" id="drawer-watching" onclick="drawerNav('watching')">
-        <span class="drawer-item-icon">👁</span>Watching
-      </button>
-      <button class="drawer-item" id="drawer-watchlist" onclick="drawerNav('watchlist')">
-        <span class="drawer-item-icon">📋</span>Watchlist
-      </button>
-      <button class="drawer-item" id="drawer-completed" onclick="drawerNav('completed')">
-        <span class="drawer-item-icon">✓</span>Completed
+      <button class="drawer-item" id="drawer-myshows" onclick="drawerNav('myshows')">
+        <span class="drawer-item-icon">📺</span>My Shows
       </button>`;
   }
 }
 
 function updateDrawerActiveState() {
-  // Shared tabs
   ['discover','calendar','stats','feed','alerts'].forEach(t => {
     const el = document.getElementById(`drawer-${t}`);
     if (el) el.classList.toggle('active', currentTab === t);
   });
-  // Mode-specific tabs — IDs change based on mode
+  const myShowsEl = document.getElementById('drawer-myshows');
+  if (myShowsEl) myShowsEl.classList.toggle('active', currentTab === 'myshows');
   if (appMode === 'movies') {
     const tw = document.getElementById('drawer-to_watch');
     const wa = document.getElementById('drawer-watched');
     if (tw) tw.classList.toggle('active', currentMovieTab === 'to_watch');
     if (wa) wa.classList.toggle('active', currentMovieTab === 'watched');
-  } else {
-    ['watching','watchlist','completed'].forEach(t => {
-      const el = document.getElementById(`drawer-${t}`);
-      if (el) el.classList.toggle('active', currentTab === t);
-    });
   }
 }
 
@@ -6358,16 +6398,13 @@ function updateDrawerAlertDot() {
   if (dot) dot.classList.toggle('show', activeAlerts.length > 0);
 }
 
-// Update all alert indicators — topbar bell dot, tab dot, drawer dot
+// Update all alert indicators — topbar bell (desktop + mobile) and drawer dot
 function updateAlertBell() {
   const hasAlerts = activeAlerts.length > 0;
-  // Desktop tab bar dot
-  const tabDot = document.getElementById('alert-dot');
-  if (tabDot) tabDot.classList.toggle('show', hasAlerts);
-  // Mobile topbar bell dot
-  const bellDot = document.getElementById('topbar-bell-dot');
-  if (bellDot) bellDot.classList.toggle('show', hasAlerts);
-  // Drawer alert dot
+  ['topbar-bell-dot','topbar-bell-dot-mobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('show', hasAlerts);
+  });
   const drawerDot = document.getElementById('drawer-alert-dot');
   if (drawerDot) drawerDot.classList.toggle('show', hasAlerts);
 }
