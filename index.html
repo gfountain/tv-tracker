@@ -3526,16 +3526,121 @@ document.addEventListener('click', e => {
 async function loadAllShows() {
   const { data, error } = await db.from('tracked_shows').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
+  if (!data?.length) { trackedShows = []; return; }
 
-  trackedShows = await Promise.all((data || []).map(async row => {
-    try {
-      const tmdb = await tmdbShowDetail(row.tmdb_id);
-      return { ...row, tmdb };
-    } catch (e) {
-      console.warn(`Failed to load TMDB data for show ${row.tmdb_id}:`, e);
-      return { ...row, tmdb: null };
+  // Step 1: Load from show_cache (fast — one Supabase query)
+  const tmdbIds = data.map(r => r.tmdb_id);
+  const { data: cached } = await db.from('show_cache')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .in('tmdb_id', tmdbIds);
+
+  const cacheMap = {};
+  (cached || []).forEach(c => { cacheMap[c.tmdb_id] = c; });
+
+  // Step 2: Build trackedShows from cache where available
+  const now = new Date();
+  const staleThreshold = 24 * 60 * 60 * 1000; // 24 hours
+  const needsFetch = [];
+
+  trackedShows = data.map(row => {
+    const c = cacheMap[row.tmdb_id];
+    if (c && (now - new Date(c.updated_at)) < staleThreshold) {
+      // Fresh cache hit — build tmdb-shaped object from cache
+      return { ...row, tmdb: cacheToTmdb(c) };
+    } else {
+      // Cache miss or stale — queue for TMDB fetch
+      needsFetch.push(row);
+      return { ...row, tmdb: c ? cacheToTmdb(c) : null }; // use stale data if available
     }
-  }));
+  });
+
+  // Step 3: Render immediately with whatever we have (cache hits show instantly)
+  renderTab();
+
+  // Step 4: Fetch missing/stale shows from TMDB in batches of 10
+  if (needsFetch.length > 0) {
+    await batchFetchShows(needsFetch);
+  }
+}
+
+// Convert a show_cache row into a TMDB-shaped object the app expects
+function cacheToTmdb(c) {
+  return {
+    id: c.tmdb_id,
+    name: c.name,
+    poster_path: c.poster_path,
+    backdrop_path: c.backdrop_path,
+    status: c.status,
+    next_episode_to_air: c.next_episode || null,
+    number_of_seasons: c.number_of_seasons,
+    genres: c.genres || [],
+    networks: c.networks || [],
+    overview: c.overview || '',
+    vote_average: c.vote_average || 0,
+    episode_run_time: c.episode_run_time || [],
+    first_air_date: c.first_air_date || null,
+    seasons: c.seasons || [],
+  };
+}
+
+// Fetch shows from TMDB in batches of 10 to avoid rate limiting
+async function batchFetchShows(rows) {
+  const BATCH_SIZE = 10;
+  const BATCH_DELAY = 200; // ms between batches
+
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+
+    await Promise.all(batch.map(async row => {
+      try {
+        const tmdb = await tmdbShowDetail(row.tmdb_id);
+        // Update in-memory trackedShows
+        const idx = trackedShows.findIndex(s => s.tmdb_id === row.tmdb_id);
+        if (idx !== -1) trackedShows[idx].tmdb = tmdb;
+        // Write to cache
+        await writeShowCache(row.tmdb_id, tmdb);
+      } catch (e) {
+        console.warn(`Failed to load TMDB data for show ${row.tmdb_id}:`, e);
+      }
+    }));
+
+    // Re-render after each batch so shows appear progressively
+    renderTab();
+
+    // Delay between batches to respect TMDB rate limits
+    if (i + BATCH_SIZE < rows.length) {
+      await new Promise(r => setTimeout(r, BATCH_DELAY));
+    }
+  }
+}
+
+// Write a TMDB show response to show_cache
+async function writeShowCache(tmdbId, tmdb) {
+  if (!tmdb || !currentUser) return;
+  try {
+    await db.from('show_cache').upsert({
+      user_id: currentUser.id,
+      tmdb_id: tmdbId,
+      name: tmdb.name,
+      poster_path: tmdb.poster_path || null,
+      backdrop_path: tmdb.backdrop_path || null,
+      status: tmdb.status,
+      next_air_date: tmdb.next_episode_to_air?.air_date || null,
+      next_episode: tmdb.next_episode_to_air || null,
+      number_of_seasons: tmdb.number_of_seasons,
+      genres: tmdb.genres || [],
+      networks: tmdb.networks || [],
+      overview: tmdb.overview || '',
+      vote_average: tmdb.vote_average || 0,
+      episode_run_time: tmdb.episode_run_time || [],
+      first_air_date: tmdb.first_air_date || null,
+      seasons: tmdb.seasons || [],
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,tmdb_id' });
+  } catch (e) {
+    console.warn(`Cache write failed for ${tmdbId}:`, e);
+  }
 }
 
 async function loadAllMovies() {
@@ -4003,6 +4108,11 @@ async function addShow(tmdbId, status = 'watching', btn = null) {
     const { error } = await db.from('tracked_shows')
       .upsert({ tmdb_id: tmdbId, status, user_id: currentUser.id }, { onConflict: 'user_id,tmdb_id' });
     if (error) throw error;
+
+    // Fetch fresh TMDB data and write to cache immediately
+    const tmdb = await tmdbShowDetail(tmdbId);
+    await writeShowCache(tmdbId, tmdb);
+
     await loadAllShows();
     await refreshShowProgressCache();
     await detectAndStoreAlerts();
@@ -4046,6 +4156,7 @@ async function removeShow(tmdbId) {
   await db.from('episode_progress').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
   await db.from('alerts').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
   await db.from('show_snapshots').delete().eq('tmdb_show_id', tmdbId).eq('user_id', uid);
+  await db.from('show_cache').delete().eq('tmdb_id', tmdbId).eq('user_id', uid);
   logActivity('show_removed', tmdbId, { showName });
   trackedShows = trackedShows.filter(s => s.tmdb_id !== tmdbId);
   activeAlerts = activeAlerts.filter(a => a.tmdb_show_id !== tmdbId);
