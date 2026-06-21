@@ -2361,21 +2361,41 @@
   </div>
 
   <div class="drawer-section-label">My Shows</div>
-  <button class="drawer-item active" id="drawer-watching" onclick="drawerNav('watching')">
-    <span class="drawer-item-icon">👁</span>Watching
-  </button>
-  <button class="drawer-item" id="drawer-watchlist" onclick="drawerNav('watchlist')">
-    <span class="drawer-item-icon">📋</span>Watchlist
-  </button>
-  <button class="drawer-item" id="drawer-completed" onclick="drawerNav('completed')">
-    <span class="drawer-item-icon">✓</span>Completed
-  </button>
+  <div id="drawer-nav-items">
+    <button class="drawer-item" id="drawer-watching" onclick="drawerNav('watching')">
+      <span class="drawer-item-icon">👁</span>Watching
+    </button>
+    <button class="drawer-item" id="drawer-watchlist" onclick="drawerNav('watchlist')">
+      <span class="drawer-item-icon">📋</span>Watchlist
+    </button>
+    <button class="drawer-item" id="drawer-completed" onclick="drawerNav('completed')">
+      <span class="drawer-item-icon">✓</span>Completed
+    </button>
+  </div>
 
   <div class="drawer-divider"></div>
   <div class="drawer-section-label">Explore</div>
   <button class="drawer-item" id="drawer-discover" onclick="drawerDiscover()">
     <span class="drawer-item-icon">🔭</span>Discover
+    <span id="drawer-discover-arrow" style="margin-left:auto;font-size:0.75rem;color:var(--text-muted);">▸</span>
   </button>
+  <div id="drawer-discover-sub" style="display:none;background:rgba(0,0,0,0.2);border-left:2px solid var(--amber-glow);margin:0 0 0 1.25rem;">
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.55rem 1rem;" onclick="drawerSelectDiscover('radar')">
+      <span class="drawer-item-icon" style="font-size:0.95rem;">📡</span>New Season Radar
+    </button>
+    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);padding:0.5rem 1rem 0.2rem;">📺 TV Shows</div>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('tv_trending')"><span class="drawer-item-icon" style="font-size:0.95rem;">🔥</span>Trending This Week</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('tv_popular')"><span class="drawer-item-icon" style="font-size:0.95rem;">📈</span>Popular Right Now</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('tv_top_rated')"><span class="drawer-item-icon" style="font-size:0.95rem;">⭐</span>Top Rated All Time</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('tv_airing')"><span class="drawer-item-icon" style="font-size:0.95rem;">📡</span>Airing Today</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('tv_on_air')"><span class="drawer-item-icon" style="font-size:0.95rem;">📺</span>Currently On The Air</button>
+    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);padding:0.5rem 1rem 0.2rem;">🎬 Movies</div>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('mov_trending')"><span class="drawer-item-icon" style="font-size:0.95rem;">🔥</span>Trending Movies</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('mov_popular')"><span class="drawer-item-icon" style="font-size:0.95rem;">📈</span>Popular Movies</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('mov_top_rated')"><span class="drawer-item-icon" style="font-size:0.95rem;">⭐</span>Top Rated Movies</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;" onclick="drawerSelectDiscover('mov_now')"><span class="drawer-item-icon" style="font-size:0.95rem;">🎟</span>Now In Theaters</button>
+    <button class="drawer-item" style="font-size:0.85rem;padding:0.5rem 1rem;margin-bottom:0.25rem;" onclick="drawerSelectDiscover('mov_upcoming')"><span class="drawer-item-icon" style="font-size:0.95rem;">🗓</span>Coming Soon</button>
+  </div>
   <button class="drawer-item" id="drawer-calendar" onclick="drawerNav('calendar')">
     <span class="drawer-item-icon">📆</span>Calendar
   </button>
@@ -5634,6 +5654,8 @@ function closeDetail(e) {
 
 // ─── MOBILE DRAWER ────────────────────────────────────────────────────────────
 function openDrawer() {
+  updateDrawerNavItems();
+  updateDrawerModeButtons();
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawer-overlay').classList.add('open');
   updateDrawerActiveState();
@@ -5647,51 +5669,98 @@ function closeDrawer() {
 
 function drawerNav(tab) {
   closeDrawer();
+  if (appMode === 'movies' && (tab === 'to_watch' || tab === 'watched')) {
+    switchMovieTab(tab);
+    return;
+  }
   if (appMode === 'movies' && (tab === 'watching' || tab === 'watchlist' || tab === 'completed')) {
-    // Movies mode doesn't have these tabs — switch to TV mode first
     setAppMode('tv');
   }
   switchTab(tab);
 }
 
 function drawerDiscover() {
+  // Toggle the discover sub-menu open/closed inline in the drawer
+  const sub = document.getElementById('drawer-discover-sub');
+  const arrow = document.getElementById('drawer-discover-arrow');
+  if (!sub) return;
+  const isOpen = sub.style.display !== 'none';
+  sub.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
+}
+
+function drawerSelectDiscover(listId) {
   closeDrawer();
-  // Open the discover dropdown after a short delay so the drawer finishes closing
-  setTimeout(() => {
-    const btn = document.getElementById('discover-btn');
-    if (btn) btn.click();
-  }, 280);
+  discoverGenreFilter = null;
+  if (listId === 'radar') {
+    discoverList = { id: 'radar', label: 'New Season Radar', icon: '📡', type: 'radar' };
+  } else {
+    const allItems = DISCOVER_LISTS.flatMap(s => s.items);
+    discoverList = allItems.find(i => i.id === listId) || null;
+  }
+  if (!discoverList) return;
+  currentTab = 'discover';
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  renderTab();
 }
 
 function drawerSetMode(mode) {
   setAppMode(mode);
+  updateDrawerModeButtons();
+  updateDrawerNavItems();
   updateDrawerActiveState();
-  // Update movie-specific drawer items
-  const watchingItem = document.getElementById('drawer-watching');
-  const watchlistItem = document.getElementById('drawer-watchlist');
-  const completedItem = document.getElementById('drawer-completed');
-  if (mode === 'movies') {
-    if (watchingItem) watchingItem.innerHTML = '<span class="drawer-item-icon">🎬</span>To Watch<span class="drawer-item-dot" style="display:none;"></span>';
-    if (watchlistItem) { watchlistItem.innerHTML = '<span class="drawer-item-icon">✓</span>Watched'; watchlistItem.id = 'drawer-watched'; watchlistItem.onclick = () => drawerNav('watched'); }
-    if (completedItem) completedItem.style.display = 'none';
+}
+
+function updateDrawerModeButtons() {
+  const tvBtn = document.getElementById('drawer-mode-tv');
+  const movBtn = document.getElementById('drawer-mode-movies');
+  if (tvBtn) tvBtn.classList.toggle('active', appMode === 'tv');
+  if (movBtn) movBtn.classList.toggle('active', appMode === 'movies');
+}
+
+function updateDrawerNavItems() {
+  const navEl = document.getElementById('drawer-nav-items');
+  if (!navEl) return;
+  if (appMode === 'movies') {
+    navEl.innerHTML = `
+      <button class="drawer-item" id="drawer-to_watch" onclick="drawerNav('to_watch')">
+        <span class="drawer-item-icon">🎬</span>To Watch
+      </button>
+      <button class="drawer-item" id="drawer-watched" onclick="drawerNav('watched')">
+        <span class="drawer-item-icon">✓</span>Watched
+      </button>`;
   } else {
-    if (watchingItem) watchingItem.innerHTML = '<span class="drawer-item-icon">👁</span>Watching';
-    if (watchlistItem) { watchlistItem.innerHTML = '<span class="drawer-item-icon">📋</span>Watchlist'; watchlistItem.id = 'drawer-watchlist'; watchlistItem.onclick = () => drawerNav('watchlist'); }
-    if (completedItem) completedItem.style.display = '';
+    navEl.innerHTML = `
+      <button class="drawer-item" id="drawer-watching" onclick="drawerNav('watching')">
+        <span class="drawer-item-icon">👁</span>Watching
+      </button>
+      <button class="drawer-item" id="drawer-watchlist" onclick="drawerNav('watchlist')">
+        <span class="drawer-item-icon">📋</span>Watchlist
+      </button>
+      <button class="drawer-item" id="drawer-completed" onclick="drawerNav('completed')">
+        <span class="drawer-item-icon">✓</span>Completed
+      </button>`;
   }
-  document.getElementById('drawer-mode-tv').classList.toggle('active', mode === 'tv');
-  document.getElementById('drawer-mode-movies').classList.toggle('active', mode === 'movies');
 }
 
 function updateDrawerActiveState() {
-  const tabMap = ['watching','watchlist','completed','discover','calendar','stats','feed','alerts'];
-  tabMap.forEach(t => {
+  // Shared tabs
+  ['discover','calendar','stats','feed','alerts'].forEach(t => {
     const el = document.getElementById(`drawer-${t}`);
     if (el) el.classList.toggle('active', currentTab === t);
   });
-  // Also handle movie tabs
-  const watchedEl = document.getElementById('drawer-watched');
-  if (watchedEl) watchedEl.classList.toggle('active', currentMovieTab === 'watched' && appMode === 'movies');
+  // Mode-specific tabs — IDs change based on mode
+  if (appMode === 'movies') {
+    const tw = document.getElementById('drawer-to_watch');
+    const wa = document.getElementById('drawer-watched');
+    if (tw) tw.classList.toggle('active', currentMovieTab === 'to_watch');
+    if (wa) wa.classList.toggle('active', currentMovieTab === 'watched');
+  } else {
+    ['watching','watchlist','completed'].forEach(t => {
+      const el = document.getElementById(`drawer-${t}`);
+      if (el) el.classList.toggle('active', currentTab === t);
+    });
+  }
 }
 
 function updateDrawerAlertDot() {
