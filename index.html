@@ -361,6 +361,66 @@
       color: #E5A00D;
     }
 
+    /* NOTIFICATION PANEL */
+    .bell-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .notif-panel {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      width: 380px;
+      max-width: 92vw;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      max-height: 70vh;
+      overflow: hidden;
+    }
+    .notif-panel.open { display: flex; }
+    .notif-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .notif-dismiss-all {
+      background: none;
+      border: none;
+      color: var(--amber);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+    .notif-dismiss-all:hover { opacity: 0.7; }
+    .notif-panel-body {
+      overflow-y: auto;
+      flex: 1;
+    }
+    /* On mobile — full width slide down from topbar */
+    @media (max-width: 640px) {
+      .bell-wrap { position: static; }
+      .notif-panel {
+        position: fixed;
+        top: 52px; /* height of topbar row 1 */
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        max-height: 65vh;
+      }
+    }
+
     /* DISCOVER DROPDOWN */
     .discover-btn {
       background: none;
@@ -2686,7 +2746,7 @@
 <!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
-    <!-- Row 1: Hamburger (mobile) + Logo + Mode (desktop) + Search + Bell + User controls -->
+    <!-- Row 1: Hamburger (mobile) + Logo + Mode (desktop) + Bell + Search + User controls -->
     <div class="topbar-row1">
       <button class="hamburger-btn" onclick="openDrawer()" aria-label="Open menu">
         <span></span><span></span><span></span>
@@ -2696,6 +2756,28 @@
         <button class="mode-btn active" id="mode-tv" onclick="setAppMode('tv')">📺 TV</button>
         <button class="mode-btn" id="mode-movies" onclick="setAppMode('movies')">🎬 Movies</button>
       </div>
+      <!-- Bell before search — desktop and mobile -->
+      <div class="bell-wrap" id="bell-wrap">
+        <button class="topbar-bell-btn topbar-bell-desktop" onclick="toggleNotifPanel(event)" title="Notifications" aria-label="Notifications">
+          🔔<span class="topbar-bell-dot" id="topbar-bell-dot"></span>
+        </button>
+        <button class="topbar-bell-btn topbar-bell-mobile" onclick="toggleNotifPanel(event)" title="Notifications" aria-label="Notifications" style="display:none;">
+          🔔<span class="topbar-bell-dot" id="topbar-bell-dot-mobile"></span>
+        </button>
+        <!-- Notification dropdown panel -->
+        <div class="notif-panel" id="notif-panel">
+          <div class="notif-panel-header">
+            <span style="font-weight:600;font-size:0.9rem;">Notifications</span>
+            <button class="notif-dismiss-all" id="notif-dismiss-all" onclick="dismissAllNotifs()" style="display:none;">Dismiss all</button>
+          </div>
+          <div class="notif-panel-body" id="notif-panel-body">
+            <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.85rem;">
+              <div style="font-size:1.75rem;margin-bottom:0.5rem;">🔔</div>
+              All clear — no new notifications.
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="topbar-search">
         <span class="search-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Search for a TV show…" autocomplete="off" />
@@ -2704,14 +2786,6 @@
           <div id="search-results"></div>
         </div>
       </div>
-      <!-- Bell — desktop and mobile -->
-      <button class="topbar-bell-btn topbar-bell-desktop" onclick="switchTab('alerts')" title="Alerts" aria-label="Alerts">
-        🔔<span class="topbar-bell-dot" id="topbar-bell-dot"></span>
-      </button>
-      <!-- Mobile bell (kept for mobile only via CSS) -->
-      <button class="topbar-bell-btn topbar-bell-mobile" onclick="switchTab('alerts')" title="Alerts" aria-label="Alerts" style="display:none;">
-        🔔<span class="topbar-bell-dot" id="topbar-bell-dot-mobile"></span>
-      </button>
       <!-- Desktop controls: Help · Settings · Theme · Email · Logout -->
       <button class="settings-btn" onclick="showHelp()" title="Help">❓</button>
       <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
@@ -2791,10 +2865,6 @@
   </button>
   <button class="drawer-item" id="drawer-feed" onclick="drawerNav('feed')">
     <span class="drawer-item-icon">🗂</span>Feed
-  </button>
-  <button class="drawer-item" id="drawer-alerts" onclick="drawerNav('alerts')">
-    <span class="drawer-item-icon">🔔</span>Alerts
-    <span class="drawer-item-dot" id="drawer-alert-dot"></span>
   </button>
 
   <div class="drawer-bottom">
@@ -4205,7 +4275,6 @@ async function dismissAlert(alertId, rowEl) {
   await db.from('alerts').update({ dismissed: true }).eq('id', alertId).eq('user_id', currentUser.id);
   activeAlerts = activeAlerts.filter(a => a.id !== alertId);
   updateAlertBell();
-  setTimeout(() => { if (currentTab === 'alerts') renderTab(); }, 200);
 }
 
 async function dismissAllInSection(alertIds) {
@@ -4213,7 +4282,6 @@ async function dismissAllInSection(alertIds) {
   await db.from('alerts').update({ dismissed: true }).in('id', alertIds).eq('user_id', currentUser.id);
   activeAlerts = activeAlerts.filter(a => !alertIds.includes(a.id));
   updateAlertBell();
-  renderTab();
 }
 
 // ─── ACTIVITY LOG ─────────────────────────────────────────────────────────────
@@ -4551,7 +4619,6 @@ function switchMovieTab(tab) {
 function renderTab() {
   const el = document.getElementById('main-content');
   if (currentTab === 'feed') { renderFeed(el); return; }
-  if (currentTab === 'alerts') { renderAlerts(el); return; }
   if (currentTab === 'calendar') { renderCalendar(el); return; }
   if (currentTab === 'discover') { renderDiscoverResults(el); return; }
   if (appMode === 'movies') {
@@ -5047,83 +5114,25 @@ function getLocalProgress(show) {
 
 // ─── ALERTS TAB ───────────────────────────────────────────────────────────────
 function renderAlerts(container) {
-  const shows = trackedShows.filter(s => s.tmdb && s.status !== 'completed');
-  const today = new Date();
-
-  // Airing soon — any episode within 14 days
-  const airingSoon = shows
-    .filter(s => {
-      const next = s.tmdb?.next_episode_to_air;
-      if (!next?.air_date) return false;
-      if (isLiveAlertSnoozed(s.tmdb.id, 'upcoming', s.tmdb)) return false;
-      const diff = Math.ceil((new Date(next.air_date) - today) / (1000 * 60 * 60 * 24));
-      return diff >= 0 && diff <= 14 && next.episode_number !== 1;
-    })
-    .sort((a, b) => {
-      const da = new Date(a.tmdb.next_episode_to_air.air_date);
-      const db = new Date(b.tmdb.next_episode_to_air.air_date);
-      return da - db;
-    });
-
-  // Season premieres — E1 within 60 days
-  const premieres = shows
-    .filter(s => {
-      const next = s.tmdb?.next_episode_to_air;
-      if (!next?.air_date) return false;
-      if (isLiveAlertSnoozed(s.tmdb.id, 'premiere', s.tmdb)) return false;
-      const diff = Math.ceil((new Date(next.air_date) - today) / (1000 * 60 * 60 * 24));
-      return diff >= 0 && diff <= 60 && next.episode_number === 1;
-    })
-    .sort((a, b) => {
-      const da = new Date(a.tmdb.next_episode_to_air.air_date);
-      const db = new Date(b.tmdb.next_episode_to_air.air_date);
-      return da - db;
-    });
-
-  const hasAnything = activeAlerts.length || airingSoon.length || premieres.length;
-
   container.innerHTML = `
     <div class="section-header"><span class="section-title">Alerts & Updates</span></div>
-    ${!hasAnything ? `
+    ${!activeAlerts.length ? `
       <div class="empty-state">
         <span class="icon">🔔</span>
         <h3>All clear</h3>
-        <p>No notifications or upcoming episodes right now. Check back later!</p>
+        <p>No new notifications. You'll hear from us when something changes on your tracked shows.</p>
       </div>` : ''}`;
 
-  // ── Notifications ──────────────────────────────────────────────────────────
   if (activeAlerts.length) {
     const allIds = activeAlerts.map(a => a.id);
     container.innerHTML += `
-      <div style="margin-bottom:1.75rem;">
+      <div>
         <div class="alerts-section-head">
           <span class="seasons-label">🔔 Notifications</span>
           <button class="clear-section-btn" onclick="dismissAllInSection(${JSON.stringify(allIds)})">Dismiss all</button>
         </div>
         <div class="alerts-list">
           ${activeAlerts.map(a => notificationRow(a)).join('')}
-        </div>
-      </div>`;
-  }
-
-  // ── Season Premieres ───────────────────────────────────────────────────────
-  if (premieres.length) {
-    container.innerHTML += `
-      <div style="margin-bottom:1.75rem;">
-        <div class="seasons-label" style="margin-bottom:0.75rem;">🎬 Season Premieres</div>
-        <div class="alerts-list">
-          ${premieres.map(s => smartAlertRow(s, 'premiere')).join('')}
-        </div>
-      </div>`;
-  }
-
-  // ── Airing Soon ────────────────────────────────────────────────────────────
-  if (airingSoon.length) {
-    container.innerHTML += `
-      <div style="margin-bottom:1.75rem;">
-        <div class="seasons-label" style="margin-bottom:0.75rem;">📅 Airing Soon</div>
-        <div class="alerts-list">
-          ${airingSoon.map(s => smartAlertRow(s, 'upcoming')).join('')}
         </div>
       </div>`;
   }
@@ -6714,7 +6723,107 @@ function closeDetail(e) {
   if (e.target === document.getElementById('detail-overlay')) closeDetailPanel();
 }
 
-// ─── MOBILE DRAWER ────────────────────────────────────────────────────────────
+// ─── NOTIFICATION PANEL ───────────────────────────────────────────────────────
+let notifPanelOpen = false;
+
+function toggleNotifPanel(e) {
+  e.stopPropagation();
+  notifPanelOpen ? closeNotifPanel() : openNotifPanel();
+}
+
+function openNotifPanel() {
+  notifPanelOpen = true;
+  const panel = document.getElementById('notif-panel');
+  if (panel) {
+    panel.classList.add('open');
+    renderNotifPanel();
+  }
+}
+
+function closeNotifPanel() {
+  notifPanelOpen = false;
+  const panel = document.getElementById('notif-panel');
+  if (panel) panel.classList.remove('open');
+}
+
+function renderNotifPanel() {
+  const body = document.getElementById('notif-panel-body');
+  const dismissAll = document.getElementById('notif-dismiss-all');
+  if (!body) return;
+
+  if (!activeAlerts.length) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.85rem;">
+        <div style="font-size:1.75rem;margin-bottom:0.5rem;">🔔</div>
+        All clear — no new notifications.
+      </div>`;
+    if (dismissAll) dismissAll.style.display = 'none';
+    return;
+  }
+
+  if (dismissAll) {
+    dismissAll.style.display = 'block';
+    dismissAll.onclick = () => dismissAllNotifs();
+  }
+
+  body.innerHTML = activeAlerts.map(a => {
+    const show = trackedShows.find(s => s.tmdb_id === a.tmdb_show_id);
+    const t = show?.tmdb;
+    const poster = t?.poster_path
+      ? `<img src="${TMDB_IMG}/w92${t.poster_path}" style="width:40px;height:60px;border-radius:6px;object-fit:cover;flex-shrink:0;" />`
+      : `<div style="width:40px;height:60px;border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📺</div>`;
+    const icon = {
+      season_date_announced: '📅', season_date_changed: '📅',
+      new_season_added: '🆕', cancelled: '🚫', ended: '🏁',
+      status_changed: '🔄', in_production: '🎬', season_premiered: '🎬'
+    }[a.alert_type] || '🔔';
+
+    return `
+      <div style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;"
+           onclick="closeNotifPanel();openDetailById(${a.tmdb_show_id})">
+        ${poster}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:0.2rem;">${icon} ${esc(t?.name || a.show_name || 'Unknown Show')}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.4;">${esc(a.message)}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">${timeAgo(a.created_at)}</div>
+        </div>
+        <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem;padding:0.25rem;flex-shrink:0;"
+                onclick="event.stopPropagation();dismissNotifFromPanel(${a.id})" title="Dismiss">✕</button>
+      </div>`;
+  }).join('');
+}
+
+async function dismissNotifFromPanel(alertId) {
+  await db.from('alerts').update({ dismissed: true }).eq('id', alertId).eq('user_id', currentUser.id);
+  activeAlerts = activeAlerts.filter(a => a.id !== alertId);
+  updateAlertBell();
+  renderNotifPanel();
+}
+
+async function dismissAllNotifs() {
+  const allIds = activeAlerts.map(a => a.id);
+  await db.from('alerts').update({ dismissed: true }).in('id', allIds).eq('user_id', currentUser.id);
+  activeAlerts = [];
+  updateAlertBell();
+  renderNotifPanel();
+}
+
+// Close notif panel when clicking outside
+document.addEventListener('click', (e) => {
+  if (!notifPanelOpen) return;
+  const panel = document.getElementById('notif-panel');
+  const bellWrap = document.getElementById('bell-wrap');
+  if (panel && bellWrap && !bellWrap.contains(e.target)) {
+    closeNotifPanel();
+  }
+});
+
+// Close when Escape key pressed
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && notifPanelOpen) closeNotifPanel();
+});
+
+
 function openDrawer() {
   updateDrawerNavItems();
   updateDrawerModeButtons();
@@ -6797,7 +6906,7 @@ function updateDrawerNavItems() {
 }
 
 function updateDrawerActiveState() {
-  ['discover','calendar','stats','feed','alerts'].forEach(t => {
+  ['discover','calendar','stats','feed'].forEach(t => {
     const el = document.getElementById(`drawer-${t}`);
     if (el) el.classList.toggle('active', currentTab === t);
   });
@@ -6816,15 +6925,15 @@ function updateDrawerAlertDot() {
   if (dot) dot.classList.toggle('show', activeAlerts.length > 0);
 }
 
-// Update all alert indicators — topbar bell (desktop + mobile) and drawer dot
+// Update all alert indicators — topbar bell (desktop + mobile) and re-render panel if open
 function updateAlertBell() {
   const hasAlerts = activeAlerts.length > 0;
   ['topbar-bell-dot','topbar-bell-dot-mobile'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('show', hasAlerts);
   });
-  const drawerDot = document.getElementById('drawer-alert-dot');
-  if (drawerDot) drawerDot.classList.toggle('show', hasAlerts);
+  // Re-render panel content if it's currently open
+  if (notifPanelOpen) renderNotifPanel();
 }
 
 // ─── SWIPE TO OPEN DRAWER ─────────────────────────────────────────────────────
