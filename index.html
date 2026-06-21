@@ -543,6 +543,15 @@
     .drawer-logo { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--amber); }
     .drawer-close { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; padding: 0.25rem; line-height: 1; }
     .drawer-mode { padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .drawer-mode-toggle {
+      display: flex;
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 3px;
+      gap: 2px;
+    }
     .drawer-section-label {
       font-size: 0.65rem;
       font-weight: 700;
@@ -2354,7 +2363,7 @@
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <div class="drawer-mode">
-    <div class="mode-toggle" style="width:100%;">
+    <div class="drawer-mode-toggle">
       <button class="mode-btn active" id="drawer-mode-tv" onclick="drawerSetMode('tv')" style="flex:1;justify-content:center;">📺 TV</button>
       <button class="mode-btn" id="drawer-mode-movies" onclick="drawerSetMode('movies')" style="flex:1;justify-content:center;">🎬 Movies</button>
     </div>
