@@ -492,6 +492,13 @@
     }
     .filter-chip:hover { border-color: var(--amber); color: var(--text); }
     .filter-chip.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
+    .filter-toggle-btn { display: none; } /* shown only on mobile via media query */
+    @media (max-width: 640px) {
+      .filter-toggle-btn { display: inline-flex !important; }
+      .filters-bar:not(.expanded) .filter-genre-chips { display: none; }
+      .filters-bar.expanded .filter-genre-chips { display: contents; }
+      .filters-bar.expanded { max-height: 300px; }
+    }
 
     /* MODE TOGGLE */
     .mode-toggle {
@@ -2026,12 +2033,165 @@
 
     /* RESPONSIVE */
     @media (max-width: 640px) {
-      .topbar-row1 { padding: 0 1rem; gap: 0.6rem; }
-      .topbar-row2 { padding: 0 0.5rem; overflow-x: auto; scrollbar-width: none; }
+
+      /* ── Safe area for iPhone notch / home bar ── */
+      body { padding-bottom: env(safe-area-inset-bottom, 16px); }
+      .topbar { padding-top: env(safe-area-inset-top, 0); }
+
+      /* ── Row 1: Logo + Search + Icon buttons only ── */
+      .topbar-row1 {
+        padding: 0 0.75rem;
+        gap: 0.5rem;
+        height: 48px;
+      }
+      .logo { font-size: 1.05rem; flex-shrink: 0; }
+
+      /* Hide mode toggle from row 1 — it moves to start of row 2 */
+      .mode-toggle { display: none !important; }
+
+      /* Search bar takes all available space */
+      .topbar-search { flex: 1; min-width: 0; }
+      .topbar-search input { font-size: 0.82rem; padding: 0.4rem 0.8rem 0.4rem 2rem; }
+
+      /* Hide email, keep icon buttons small */
+      #user-email-display { display: none !important; }
+      .settings-btn { font-size: 1rem; padding: 0.2rem; }
+
+      /* ── Row 2: scrollable tab strip, mode toggle first ── */
+      .topbar-row2 {
+        padding: 0 0.5rem;
+        height: 42px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.1rem;
+        align-items: center;
+      }
       .topbar-row2::-webkit-scrollbar { display: none; }
-      .shows-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.85rem; }
+
+      /* Show the mobile mode toggle at start of row 2 */
+      .mode-toggle-mobile {
+        display: flex !important;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        padding: 2px;
+        gap: 2px;
+        flex-shrink: 0;
+        margin-right: 0.3rem;
+      }
+
+      /* Larger touch targets on tabs */
+      .tab-btn {
+        font-size: 0.78rem;
+        padding: 0.4rem 0.75rem;
+        min-height: 34px;
+        flex-shrink: 0;
+      }
+      .mode-btn { font-size: 0.75rem; padding: 0.28rem 0.65rem; }
+      .tab-divider { margin: 0 0.15rem; height: 14px; }
+      .discover-btn { font-size: 0.78rem; padding: 0.4rem 0.75rem; }
+
+      /* ── Section header: allow wrap ── */
+      .section-header { flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; }
+      .section-title { font-size: 1.05rem !important; }
+
+      /* ── Genre chips: collapse into a toggle ── */
+      .filters-bar {
+        max-height: 40px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        position: relative;
+        flex-wrap: nowrap;
+        gap: 0.4rem;
+      }
+      .filters-bar.expanded { max-height: 300px; flex-wrap: wrap; }
+      .filter-toggle-btn { display: inline-flex !important; flex-shrink: 0; }
+      .filters-bar:not(.expanded) .filter-genre-chips { display: none; }
+      .filters-bar.expanded .filter-genre-chips { display: contents; }
+
+      /* ── Grid: 2 columns ── */
+      .shows-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+
+      /* ── List rows ── */
+      .list-show-row { padding: 0.65rem 0.75rem; gap: 0.65rem; }
+      .list-progress { display: none; }
+      .list-row-chevron { font-size: 0.7rem; }
+
+      /* ── Up Next cards ── */
+      .up-next-card { width: 175px; }
+      .up-next-backdrop { height: 85px; }
+      .up-next-body { padding: 0.6rem; }
+      .up-next-show-title { font-size: 0.8rem; }
+      .up-next-mark-btn { font-size: 0.68rem; padding: 0.25rem 0.5rem; }
+
+      /* ── Stats ── */
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+      .stat-card { padding: 0.85rem 0.6rem; }
+      .stat-card-value { font-size: 1.5rem; }
+      .stat-card-label { font-size: 0.65rem; }
+      .stats-bar-label { width: 90px; font-size: 0.75rem; }
+      .stats-top-show { padding: 0.6rem 0.75rem; gap: 0.6rem; }
+
+      /* ── Calendar ── */
+      .calendar-cell { min-height: 55px; padding: 0.2rem; }
+      .calendar-ep-chip { font-size: 0.56rem; padding: 0.08rem 0.18rem; }
+      .calendar-month-label { font-size: 0.95rem; min-width: unset; }
+      .calendar-nav { gap: 0.4rem; margin-bottom: 0.85rem; }
+      .calendar-today-btn { font-size: 0.78rem; padding: 0.3rem 0.7rem; }
+      .calendar-weekday { font-size: 0.62rem; }
+
+      /* ── Detail panel ── */
       .detail-panel { width: 100vw; }
+      .detail-backdrop { height: 200px; }
+      .detail-body { padding: 0 0.9rem 2rem; }
+      .detail-header { gap: 0.75rem; }
+      .detail-poster { width: 72px; margin-top: -36px; }
+      .detail-poster-placeholder { width: 72px; height: 108px; margin-top: -36px; }
+      .detail-title { font-size: 1.15rem; }
+      .detail-meta-row { gap: 0.5rem; font-size: 0.74rem; flex-wrap: wrap; }
+      .detail-actions { flex-wrap: wrap; gap: 0.4rem; }
+      .detail-actions .btn { font-size: 0.8rem; padding: 0.5rem 0.85rem; }
+
+      /* ── Ratings panel ── */
+      .ratings-panel { width: 100vw; }
+      .ratings-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+      .rating-score { font-size: 1.5rem; }
+      .rating-card { padding: 0.85rem 0.6rem; }
+
+      /* ── Help panel ── */
+      .help-toc { display: none; }
+      .help-panel { width: 100vw; }
+      .help-content { padding: 1rem; }
+      .help-search-wrap { padding: 0.75rem 1rem; }
+
+      /* ── Settings modal — slides up from bottom on mobile ── */
+      #settings-overlay.open { padding: 0; align-items: flex-end; justify-content: center; }
+      .settings-modal { width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 85vh; }
+
+      /* ── Cast scroll ── */
+      .cast-card { width: 64px; }
+      .cast-photo { width: 64px; height: 64px; }
+      .cast-photo-placeholder { width: 64px; height: 64px; }
+      .cast-name { font-size: 0.65rem; }
+      .cast-character { font-size: 0.6rem; }
+
+      /* ── Discover results ── */
+      .discover-row { gap: 0.5rem; padding: 0.6rem 0.75rem; }
+      .discover-rank { font-size: 1rem; width: 20px; }
+      .discover-actions { flex-direction: column; gap: 0.3rem; align-items: flex-end; }
+      .discover-add-btn { font-size: 0.7rem; padding: 0.25rem 0.55rem; }
+      .discover-detail-btn { font-size: 0.7rem; padding: 0.25rem 0.55rem; }
+      .discover-dropdown { width: min(280px, 92vw); }
+
+      /* ── Auth screen ── */
+      .setup-card { padding: 1.75rem 1.25rem; margin: 1rem; }
+
+      /* ── Main content padding ── */
+      .main-content { padding: 1rem 0.85rem; }
     }
+
   </style>
 </head>
 <body>
@@ -2089,6 +2249,11 @@
     </div>
     <!-- Row 2: Tabs + Discover -->
     <div class="topbar-row2" id="topbar-tabs">
+      <!-- Mobile-only mode toggle sits at start of row 2 -->
+      <div class="mode-toggle mode-toggle-mobile" style="display:none;">
+        <button class="mode-btn active" id="mode-tv-mobile" onclick="setAppMode('tv')">📺</button>
+        <button class="mode-btn" id="mode-movies-mobile" onclick="setAppMode('movies')">🎬</button>
+      </div>
       <button class="tab-btn active" onclick="switchTab('watching')">Watching</button>
       <button class="tab-btn" onclick="switchTab('watchlist')">Watchlist</button>
       <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
@@ -3503,6 +3668,11 @@ function setAppMode(mode) {
   appMode = mode;
   document.getElementById('mode-tv').classList.toggle('active', mode === 'tv');
   document.getElementById('mode-movies').classList.toggle('active', mode === 'movies');
+  // Sync mobile mode toggle in row 2
+  const mtvMobile = document.getElementById('mode-tv-mobile');
+  const mmovMobile = document.getElementById('mode-movies-mobile');
+  if (mtvMobile) mtvMobile.classList.toggle('active', mode === 'tv');
+  if (mmovMobile) mmovMobile.classList.toggle('active', mode === 'movies');
 
   const tabsEl = document.getElementById('topbar-tabs');
   const searchInput = document.getElementById('search-input');
@@ -3636,14 +3806,19 @@ function renderShowsTab(container) {
         </div>
       </div>
     </div>
-    <div class="filters-bar">
+    <div class="filters-bar" id="filters-bar-main">
       ${showSubTabs ? `
         <button class="filter-chip ${watchingSubView === 'all' ? 'active' : ''}" onclick="setWatchingSubView('all')">All Shows</button>
         <button class="filter-chip ${watchingSubView === 'unwatched' ? 'active' : ''}" onclick="setWatchingSubView('unwatched')">Unwatched Episodes</button>
       ` : ''}
       ${availableGenres.length ? `
-        <button class="filter-chip ${genreFilter == null ? 'active' : ''}" onclick="setGenreFilter(null)">All Genres</button>
-        ${availableGenres.map(g => `<button class="filter-chip ${genreFilter === g.id ? 'active' : ''}" onclick="setGenreFilter(${g.id})">${esc(g.name)}</button>`).join('')}
+        <button class="filter-chip filter-toggle-btn" style="display:none;border-style:dashed;" onclick="toggleFiltersBar()">
+          ${genreFilter != null ? '🎭 Genre: ' + esc(availableGenres.find(g=>g.id===genreFilter)?.name||'') : '🎭 Genre ▾'}
+        </button>
+        <span class="filter-genre-chips">
+          <button class="filter-chip ${genreFilter == null ? 'active' : ''}" onclick="setGenreFilter(null)">All Genres</button>
+          ${availableGenres.map(g => `<button class="filter-chip ${genreFilter === g.id ? 'active' : ''}" onclick="setGenreFilter(${g.id})">${esc(g.name)}</button>`).join('')}
+        </span>
       ` : ''}
     </div>`;
 
@@ -3679,6 +3854,11 @@ function setSortBy(v) {
 function setGenreFilter(genreId) {
   genreFilter = genreId;
   renderTab();
+}
+
+function toggleFiltersBar() {
+  const bar = document.getElementById('filters-bar-main');
+  if (bar) bar.classList.toggle('expanded');
 }
 
 function getAvailableGenres(shows) {
