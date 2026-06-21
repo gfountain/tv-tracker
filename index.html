@@ -3545,22 +3545,27 @@ async function loadAllShows() {
 
   trackedShows = data.map(row => {
     const c = cacheMap[row.tmdb_id];
-    if (c && (now - new Date(c.updated_at)) < staleThreshold) {
-      // Fresh cache hit — build tmdb-shaped object from cache
+    const isFresh = c && (now - new Date(c.updated_at)) < staleThreshold;
+    const isComplete = c && c.last_episode !== undefined; // has new schema fields
+    if (isFresh && isComplete) {
+      // Fresh complete cache hit — build tmdb-shaped object from cache
       return { ...row, tmdb: cacheToTmdb(c) };
     } else {
-      // Cache miss or stale — queue for TMDB fetch
+      // Cache miss, stale, or incomplete schema — queue for TMDB fetch
       needsFetch.push(row);
-      return { ...row, tmdb: c ? cacheToTmdb(c) : null }; // use stale data if available
+      return { ...row, tmdb: (c && isComplete) ? cacheToTmdb(c) : null };
     }
   });
 
   // Step 3: Render immediately with whatever we have (cache hits show instantly)
   renderTab();
 
-  // Step 4: Fetch missing/stale shows from TMDB in batches of 10
+  // Step 4: Fetch missing/stale/incomplete shows from TMDB in batches of 10
   if (needsFetch.length > 0) {
+    console.log(`[Cache] Fetching ${needsFetch.length} shows from TMDB in batches...`);
+    toast(`Loading ${needsFetch.length} shows from TMDB…`);
     await batchFetchShows(needsFetch);
+    console.log('[Cache] Batch fetch complete');
   }
 }
 
