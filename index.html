@@ -2651,7 +2651,20 @@
       <div class="detail-title" style="margin-bottom:0.25rem;">⚙️ Settings</div>
       <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.5rem;" id="settings-email-line"></div>
 
-      <div class="seasons-label" style="margin-bottom:0.75rem;">Set / Change Password</div>
+      <!-- TIMEZONE -->
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🕐 Timezone</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.6rem;">Used for date display throughout the app and in your daily digest email.</div>
+      <select class="sort-select" id="settings-timezone" style="width:100%;margin-bottom:0.75rem;" onchange="saveTimezone(this.value)">
+        <option value="America/New_York">Eastern Time (ET)</option>
+        <option value="America/Chicago">Central Time (CT)</option>
+        <option value="America/Denver">Mountain Time (MT)</option>
+        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+      </select>
+
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0;"></div>
+
+      <!-- PASSWORD -->
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🔑 Set / Change Password</div>
       <div class="setup-label">New Password</div>
       <input class="setup-input" id="settings-new-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
       <div class="setup-label">Confirm New Password</div>
@@ -2709,6 +2722,7 @@ const OMDB_KEY = 'c461a681';
 
 let db = null;
 let currentUser = null;
+let userPrefs = { timezone: 'America/New_York' }; // loaded from Supabase on login
 let authMode = 'signin';
 let appMode = 'tv';           // 'tv' | 'movies'
 let currentTab = 'watching';
@@ -2792,7 +2806,7 @@ async function onAuthSuccess(user) {
   if (emailDisplay) { emailDisplay.textContent = user.email; emailDisplay.style.display = 'inline'; }
 
   setupSearch();
-  await Promise.all([loadAllShows(), loadAllMovies()]);
+  await Promise.all([loadAllShows(), loadAllMovies(), loadUserPrefs()]);
   await refreshShowProgressCache();
   await detectAndStoreAlerts();
   await loadActiveAlerts();
@@ -5050,7 +5064,8 @@ function timeAgo(isoString) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const tz = userPrefs?.timezone || 'America/New_York';
+  return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 // ─── MOVIE STATS ──────────────────────────────────────────────────────────────
@@ -6386,6 +6401,35 @@ function filterHelp(query) {
   if (countEl) countEl.textContent = matchCount === 0 ? 'No results' : `${matchCount} section${matchCount !== 1 ? 's' : ''}`;
 }
 
+// ─── USER PREFERENCES ─────────────────────────────────────────────────────────
+async function loadUserPrefs() {
+  if (!currentUser) return;
+  const { data } = await db.from('user_preferences')
+    .select('timezone')
+    .eq('user_id', currentUser.id)
+    .single();
+  if (data) {
+    userPrefs = { timezone: data.timezone || 'America/New_York' };
+  } else {
+    // First time — create a default preferences row
+    await db.from('user_preferences').insert({
+      user_id: currentUser.id,
+      timezone: 'America/New_York'
+    });
+    userPrefs = { timezone: 'America/New_York' };
+  }
+}
+
+async function saveTimezone(tz) {
+  userPrefs.timezone = tz;
+  await db.from('user_preferences')
+    .upsert({ user_id: currentUser.id, timezone: tz, updated_at: new Date().toISOString() },
+             { onConflict: 'user_id' });
+  toast('Timezone saved ✓');
+  // Re-render current tab so dates update immediately
+  renderTab();
+}
+
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 function showSettings() {
   document.getElementById('settings-email-line').textContent = `Signed in as ${currentUser?.email || 'unknown'}`;
@@ -6393,6 +6437,9 @@ function showSettings() {
   document.getElementById('settings-confirm-password').value = '';
   document.getElementById('settings-error').style.display = 'none';
   document.getElementById('settings-success').style.display = 'none';
+  // Pre-select current timezone
+  const tzSelect = document.getElementById('settings-timezone');
+  if (tzSelect) tzSelect.value = userPrefs.timezone || 'America/New_York';
   document.getElementById('settings-overlay').classList.add('open');
 }
 
@@ -6464,8 +6511,10 @@ function statusLabel(s) {
 
 function formatDate(d) {
   if (!d) return '';
-  const date = new Date(d + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const tz = userPrefs?.timezone || 'America/New_York';
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {
+    timeZone: tz, month: 'short', day: 'numeric', year: 'numeric'
+  });
 }
 
 function esc(str) {
