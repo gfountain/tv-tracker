@@ -174,7 +174,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(13,13,15,0.95);
+      background: var(--bg2);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
     }
@@ -185,6 +185,7 @@
       padding: 0 1.5rem;
       height: 52px;
       border-bottom: 1px solid var(--border);
+      background: var(--bg2);
     }
     .topbar-row2 {
       display: flex;
@@ -192,7 +193,7 @@
       gap: 0.15rem;
       padding: 0 1.5rem;
       height: 40px;
-      background: rgba(10,10,12,0.6);
+      background: var(--bg3);
     }
     .tab-divider {
       width: 1px;
@@ -670,7 +671,7 @@
       bottom: 0;
       width: 280px;
       max-width: 85vw;
-      background: #141418;
+      background: var(--bg2);
       border-right: 1px solid var(--border);
       z-index: 301;
       display: flex;
@@ -1135,9 +1136,29 @@
       padding: 4rem 2rem;
       color: var(--text-muted);
     }
-    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state .empty-illustration {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+      opacity: 0.7;
+    }
+    .empty-state .icon { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
     .empty-state h3 { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--text); margin-bottom: 0.5rem; }
-    .empty-state p { font-size: 0.9rem; max-width: 300px; margin: 0 auto; }
+    .empty-state p { font-size: 0.9rem; max-width: 300px; margin: 0 auto; line-height: 1.6; }
+    .empty-state .empty-action {
+      display: inline-block;
+      margin-top: 1.25rem;
+      padding: 0.5rem 1.25rem;
+      background: var(--amber-dim);
+      border: 1px solid var(--amber-glow);
+      color: var(--amber);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .empty-state .empty-action:hover { background: var(--amber); color: var(--bg); }
 
     /* DETAIL PANEL */
     .detail-overlay {
@@ -1189,7 +1210,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(to bottom, rgba(13,13,15,0) 30%, var(--bg2) 100%);
+      background: linear-gradient(to bottom, transparent 30%, var(--bg2) 100%);
     }
     .detail-backdrop-placeholder {
       width: 100%;
@@ -1205,7 +1226,7 @@
       top: 1rem;
       right: 1rem;
       z-index: 10;
-      background: rgba(13,13,15,0.7);
+      background: var(--bg3);
       border: 1px solid var(--border);
       color: var(--text);
       border-radius: 50%;
@@ -1934,6 +1955,26 @@
 
     /* ACTIVITY FEED */
     .feed-list { display: flex; flex-direction: column; gap: 0; }
+    .feed-widget {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+    .feed-widget-header {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .feed-widget-body {
+      padding: 0.85rem 1rem;
+    }
     .feed-item {
       display: flex;
       gap: 1rem;
@@ -2412,6 +2453,34 @@
       flex-direction: column;
       gap: 0.5rem;
     }
+    .back-to-top {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 1.5rem;
+      z-index: 999;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      transform: translateY(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .back-to-top:hover { background: var(--bg4); color: var(--amber); }
     .toast {
       background: var(--bg3);
       border: 1px solid var(--border);
@@ -2421,9 +2490,29 @@
       font-size: 0.85rem;
       box-shadow: var(--shadow);
       animation: toastIn 0.25s ease;
-      max-width: 300px;
+      max-width: 320px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
+    .toast-msg { flex: 1; }
+    .toast-undo {
+      background: none;
+      border: 1px solid var(--amber-glow);
+      color: var(--amber);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 50px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .toast-undo:hover { background: var(--amber-dim); }
+    .toast.toast-out { animation: toastOut 0.3s ease forwards; }
     @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(8px); } }
 
     /* SETTINGS COG BUTTON */
     .settings-btn {
@@ -2800,6 +2889,7 @@
 
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
+<button class="back-to-top" id="back-to-top" onclick="scrollToTop()" aria-label="Back to top" title="Back to top">↑</button>
 
 <script>
 // ─── CONFIG & STATE ───────────────────────────────────────────────────────────
@@ -4303,7 +4393,17 @@ async function removeShow(tmdbId) {
   updateAlertBell();
   closeDetailPanel();
   renderTab();
-  toast('Show removed');
+  toast(`"${showName || 'Show'}" removed`, false, async () => {
+    // Undo — re-add to tracked_shows and cache
+    await db.from('tracked_shows').upsert(
+      { tmdb_id: tmdbId, status: show.status, user_id: uid },
+      { onConflict: 'user_id,tmdb_id' }
+    );
+    await loadAllShows();
+    await refreshShowProgressCache();
+    renderTab();
+    toast('Removed show restored ✓');
+  });
 }
 
 // ─── MOVIE CRUD ───────────────────────────────────────────────────────────────
@@ -4574,13 +4674,44 @@ function renderShowsTab(container) {
 
   if (!filtered.length) {
     const msgs = {
-      all:        `<div class="empty-state"><div class="icon">📺</div><h3>No shows yet</h3><p>Search for a show above to start tracking.</p></div>`,
-      unwatched:  `<div class="empty-state"><div class="icon">🎉</div><h3>All caught up!</h3><p>No unwatched aired episodes right now. Check Upcoming for what's coming next.</p></div>`,
-      upcoming:   `<div class="empty-state"><div class="icon">📅</div><h3>Nothing upcoming</h3><p>No shows with a confirmed future air date.</p></div>`,
-      production: `<div class="empty-state"><div class="icon">🎬</div><h3>Nothing filming</h3><p>No tracked shows are currently in production.</p></div>`,
-      ended:      `<div class="empty-state"><div class="icon">📺</div><h3>None ended or cancelled</h3><p>No tracked shows have ended or been cancelled.</p></div>`,
-      completed:  `<div class="empty-state"><div class="icon">🏆</div><h3>Nothing completed yet</h3><p>Shows move here automatically when you finish watching an ended series.</p></div>`,
-      watchlist:  `<div class="empty-state"><div class="icon">📋</div><h3>Watchlist is empty</h3><p>Search for shows and add them to your Watchlist.</p></div>`,
+      all: `<div class="empty-state">
+        <span class="icon">📺</span>
+        <h3>Your library is empty</h3>
+        <p>Search for a show above to start building your collection.</p>
+        <button class="empty-action" onclick="document.getElementById('search-input').focus()">Search for shows</button>
+      </div>`,
+      unwatched: `<div class="empty-state">
+        <span class="icon">🎉</span>
+        <h3>All caught up!</h3>
+        <p>No unwatched aired episodes right now. Check Upcoming to see what's coming next.</p>
+        <button class="empty-action" onclick="setWatchingSubView('upcoming')">See Upcoming →</button>
+      </div>`,
+      upcoming: `<div class="empty-state">
+        <span class="icon">📅</span>
+        <h3>Nothing upcoming yet</h3>
+        <p>No shows with a confirmed future air date. Check back soon — renewal announcements come through here.</p>
+      </div>`,
+      production: `<div class="empty-state">
+        <span class="icon">🎬</span>
+        <h3>Nothing filming right now</h3>
+        <p>None of your tracked shows are currently in production. Shows move here when TMDB marks them as In Production.</p>
+      </div>`,
+      ended: `<div class="empty-state">
+        <span class="icon">✅</span>
+        <h3>No ended or cancelled shows</h3>
+        <p>All your tracked shows are still active. Ended and cancelled shows will appear here automatically.</p>
+      </div>`,
+      completed: `<div class="empty-state">
+        <span class="icon">🏆</span>
+        <h3>Nothing completed yet</h3>
+        <p>Shows move here automatically when you finish watching an ended series. Keep watching!</p>
+      </div>`,
+      watchlist: `<div class="empty-state">
+        <span class="icon">📋</span>
+        <h3>Your watchlist is empty</h3>
+        <p>Use the Watchlist option when adding a show to save it for later without starting it yet.</p>
+        <button class="empty-action" onclick="document.getElementById('search-input').focus()">Find shows to save</button>
+      </div>`,
     };
     container.innerHTML += msgs[watchingSubView] || msgs.all;
     return;
@@ -5237,10 +5368,80 @@ async function renderFeed(container) {
     feedOffset = feedItems.length;
   }
 
-  renderFeedContent(container);
+  // Build widgets in parallel
+  const [onThisDay, countdown] = await Promise.all([
+    buildOnThisDayWidget(),
+    buildCountdownWidget()
+  ]);
+
+  renderFeedContent(container, onThisDay, countdown);
 }
 
-function renderFeedContent(container) {
+async function buildOnThisDayWidget() {
+  try {
+    const today = new Date();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    // Find activity from previous years on this month/day
+    const { data } = await db.from('activity_log')
+      .select('*')
+      .like('created_at', `%-${mm}-${dd}T%`)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!data?.length) return null;
+
+    // Filter to previous years only
+    const thisYear = today.getFullYear();
+    const pastItems = (data || []).filter(item => {
+      return new Date(item.created_at).getFullYear() < thisYear;
+    });
+
+    if (!pastItems.length) return null;
+
+    // Group by year
+    const byYear = {};
+    pastItems.forEach(item => {
+      const yr = new Date(item.created_at).getFullYear();
+      (byYear[yr] = byYear[yr] || []).push(item);
+    });
+
+    return byYear;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function buildCountdownWidget() {
+  try {
+    const today = new Date();
+    const upcoming = [];
+
+    for (const show of trackedShows) {
+      if (!show.tmdb || show.status === 'completed') continue;
+      const nextEp = show.tmdb.next_episode_to_air;
+      if (!nextEp?.air_date) continue;
+      const airDate = new Date(nextEp.air_date + 'T00:00:00');
+      if (airDate <= today) continue;
+      const diffDays = Math.ceil((airDate - today) / (1000 * 60 * 60 * 24));
+      if (diffDays > 30) continue; // only show within 30 days
+      upcoming.push({
+        show,
+        nextEp,
+        airDate,
+        diffDays,
+        isSeasonPremiere: nextEp.episode_number === 1
+      });
+    }
+
+    upcoming.sort((a, b) => a.diffDays - b.diffDays);
+    return upcoming.length ? upcoming : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function renderFeedContent(container, onThisDay = null, countdown = null) {
   const typeConfig = {
     show_added:      { icon: '➕', color: 'var(--green)' },
     show_removed:    { icon: '🗑️', color: 'var(--text-muted)' },
@@ -5316,11 +5517,70 @@ function renderFeedContent(container) {
     </div>`;
   }).join('');
 
+  // Build On This Day HTML
+  let onThisDayHtml = '';
+  if (onThisDay && Object.keys(onThisDay).length > 0) {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const years = Object.keys(onThisDay).sort((a, b) => b - a);
+    const rows = years.map(yr => {
+      const items = onThisDay[yr].slice(0, 3);
+      const yearsAgo = today.getFullYear() - yr;
+      const label = yearsAgo === 1 ? '1 year ago' : `${yearsAgo} years ago`;
+      const itemsList = items.map(item => {
+        const cfg = typeConfig[item.activity_type] || { icon: '•', color: 'var(--text-muted)' };
+        return `<div style="font-size:0.82rem;color:var(--text-mid);padding:0.2rem 0;">
+          <span style="color:${cfg.color};">${cfg.icon}</span> ${feedText(item)}
+        </div>`;
+      }).join('');
+      return `<div style="margin-bottom:0.75rem;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--amber);margin-bottom:0.3rem;">${label}</div>
+        ${itemsList}
+        ${onThisDay[yr].length > 3 ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">+${onThisDay[yr].length - 3} more</div>` : ''}
+      </div>`;
+    }).join('');
+    onThisDayHtml = `
+      <div class="feed-widget">
+        <div class="feed-widget-header">🗓 On this day — ${dateStr}</div>
+        <div class="feed-widget-body">${rows}</div>
+      </div>`;
+  }
+
+  // Build Countdown HTML
+  let countdownHtml = '';
+  if (countdown && countdown.length > 0) {
+    const rows = countdown.map(item => {
+      const { show, nextEp, diffDays, isSeasonPremiere } = item;
+      const label = diffDays === 1 ? 'Tomorrow' : diffDays === 0 ? 'Today!' : `in ${diffDays}d`;
+      const epLabel = isSeasonPremiere
+        ? `<span style="background:var(--amber-dim);color:var(--amber);border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:700;margin-left:4px;">PREMIERE</span>`
+        : '';
+      const poster = show.tmdb?.poster_path
+        ? `<img src="${TMDB_IMG}/w45${show.tmdb.poster_path}" style="width:32px;height:48px;border-radius:4px;object-fit:cover;flex-shrink:0;" />`
+        : `<div style="width:32px;height:48px;background:var(--bg4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">📺</div>`;
+      return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid var(--border);" onclick="openDetailById(${show.tmdb_id})" style="cursor:pointer;">
+        ${poster}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(show.tmdb?.name || '')}${epLabel}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);">S${nextEp.season_number}E${nextEp.episode_number}</div>
+        </div>
+        <div style="font-size:0.82rem;font-weight:700;color:var(--amber);white-space:nowrap;flex-shrink:0;">${label}</div>
+      </div>`;
+    }).join('');
+    countdownHtml = `
+      <div class="feed-widget">
+        <div class="feed-widget-header">📅 Coming up — next 30 days</div>
+        <div class="feed-widget-body" style="padding:0 1rem;">${rows}</div>
+      </div>`;
+  }
+
   container.innerHTML = `
     <div class="section-header">
       <span class="section-title">Activity Feed</span>
       <span class="section-count">${feedItems.length}</span>
     </div>
+    ${onThisDayHtml}
+    ${countdownHtml}
     <div class="feed-list">${rows}</div>
     <div class="feed-load-more" onclick="loadMoreFeed()">Load more</div>`;
 }
@@ -5333,7 +5593,7 @@ async function loadMoreFeed() {
   const newItems = data || [];
   feedItems = [...feedItems, ...newItems];
   feedOffset += newItems.length;
-  renderFeedContent(document.getElementById('main-content'));
+  renderFeedContent(document.getElementById('main-content')); // no widgets on load-more
 }
 
 function timeAgo(isoString) {
@@ -6901,19 +7161,54 @@ function formatDate(d) {
   });
 }
 
+// ─── BACK TO TOP ──────────────────────────────────────────────────────────────
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('back-to-top');
+  if (btn) btn.classList.toggle('visible', window.scrollY > 400);
+}, { passive: true });
+
 function esc(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function toast(msg, isError = false) {
+function toast(msg, isError = false, undoFn = null, duration = 5000) {
   const c = document.getElementById('toast-container');
   const el = document.createElement('div');
   el.className = 'toast';
-  el.textContent = msg;
   if (isError) el.style.borderColor = 'rgba(224,82,82,0.4)';
+
+  const msgEl = document.createElement('span');
+  msgEl.className = 'toast-msg';
+  msgEl.textContent = msg;
+  el.appendChild(msgEl);
+
+  let cancelled = false;
+
+  if (undoFn) {
+    const undoBtn = document.createElement('button');
+    undoBtn.className = 'toast-undo';
+    undoBtn.textContent = 'Undo';
+    undoBtn.onclick = () => {
+      cancelled = true;
+      dismiss();
+      undoFn();
+    };
+    el.appendChild(undoBtn);
+  }
+
+  function dismiss() {
+    el.classList.add('toast-out');
+    setTimeout(() => el.remove(), 300);
+  }
+
   c.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  const timer = setTimeout(() => { if (!cancelled) dismiss(); }, duration);
+  el.addEventListener('click', () => { if (!undoFn) { clearTimeout(timer); dismiss(); } });
 }
 </script>
 </body>
