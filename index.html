@@ -1308,6 +1308,26 @@
       font-size: 0.74rem;
       color: var(--text-muted);
     }
+    .ep-summary {
+      display: none;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      padding: 0.4rem 1rem 0.65rem 2.85rem;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      background: rgba(0,0,0,0.15);
+    }
+    .ep-name {
+      cursor: pointer;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ep-name:hover { color: var(--amber); }
+    .episode-row.summary-open .ep-name { white-space: normal; color: var(--amber); }
+    .episode-row.summary-open .ep-summary { display: block; }
     .episode-row {
       display: flex;
       align-items: center;
@@ -5562,15 +5582,23 @@ function buildEpisodePanel(tmdb, meta, epProgress) {
     const watchedRecord = epProgress.find(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
     const isWatched = !!watchedRecord;
     const watchedAgo = isWatched && watchedRecord.watched_at ? timeAgo(watchedRecord.watched_at) : null;
+    const hasSummary = e.overview && e.overview.trim().length > 0;
+    const epId = `ep-${tmdb.id}-${s.season_number}-${e.episode_number}`;
+
     return `
-      <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" onclick="${isFuture ? '' : `event.stopPropagation();toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
-        <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
-        <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
-        <span class="ep-name">${esc(e.name)}</span>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
-          <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
-          ${watchedAgo ? `<span style="font-size:0.66rem;color:var(--green);margin-top:0.1rem;">watched ${watchedAgo}</span>` : ''}
+      <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" id="${epId}" style="flex-wrap:wrap;padding-bottom:0;">
+        <div style="display:flex;align-items:center;gap:0.75rem;width:100%;padding:0.55rem 1rem;"
+             onclick="${isFuture ? '' : `event.stopPropagation();toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
+          <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
+          <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
+          <span class="ep-name" onclick="${hasSummary ? `event.stopPropagation();toggleEpSummary('${epId}')` : ''}"
+                title="${hasSummary ? 'Tap for summary' : ''}">${esc(e.name)}</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+            <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
+            ${watchedAgo ? `<span style="font-size:0.66rem;color:var(--green);margin-top:0.1rem;">watched ${watchedAgo}</span>` : ''}
+          </div>
         </div>
+        ${hasSummary ? `<div class="ep-summary">${esc(e.overview)}</div>` : ''}
       </div>`;
   }).join('');
 
@@ -5589,6 +5617,12 @@ function buildEpisodePanel(tmdb, meta, epProgress) {
         ${epsHtml}
       </div>
     </div>`;
+}
+
+function toggleEpSummary(epId) {
+  const row = document.getElementById(epId);
+  if (!row) return;
+  row.classList.toggle('summary-open');
 }
 
 async function selectSeasonPill(showId, seasonNum) {
