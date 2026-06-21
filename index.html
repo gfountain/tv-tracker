@@ -1233,6 +1233,81 @@
       background: var(--bg);
     }
     .season-accordion.open .season-episodes { display: block; }
+
+    /* SEASON PILL SELECTOR */
+    .season-pills-wrap {
+      margin-bottom: 0.75rem;
+    }
+    .season-pills-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .season-pill {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.3rem 0.65rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      position: relative;
+    }
+    .season-pill:hover { border-color: var(--amber); color: var(--text); }
+    .season-pill.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
+    .season-pill.done { background: rgba(76,175,130,0.08); border-color: rgba(76,175,130,0.25); color: var(--text-muted); }
+    .season-pill.done.active { background: rgba(76,175,130,0.18); border-color: var(--green); color: var(--green); }
+    .season-pill.partial { border-color: rgba(245,166,35,0.3); }
+    .season-pill-dot {
+      display: inline-block;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+      vertical-align: middle;
+      margin-left: 3px;
+      margin-bottom: 1px;
+    }
+    .season-show-watched-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 0.25rem 0.4rem;
+      border-radius: var(--radius);
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .season-show-watched-btn:hover { color: var(--amber); }
+    .season-ep-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .season-ep-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.85rem;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+    }
+    .season-ep-header-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .season-ep-header-meta {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
     .episode-row {
       display: flex;
       align-items: center;
@@ -2522,15 +2597,16 @@ let trackedMovies = [];       // local cache [{...row, tmdb:{...}}]
 let activeAlerts = []; // local cache of undismissed alerts from the alerts table
 let activeDetailId = null;
 let searchDebounce = null;
-let openSeasonIds = new Set(); // tracks which season accordions are open, survives re-renders
-let expandedListRows = new Set(); // tracks which list-view rows are expanded inline
+let openSeasonIds = new Set();
+let expandedListRows = new Set();
+let selectedSeasonMap = {}; // { [showId]: seasonNumber } — tracks selected pill per show
 let hideWatchedSeasonsMap = {}; // { [showId]: boolean } whether to hide fully-watched seasons
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
 let watchingSubView = 'unwatched'; // 'all' | 'unwatched'
 let showProgressCache = {}; // { [showId]: { watched, total, pct } } — aggregate progress across all aired episodes
-let sortBy = 'added';
+let sortBy = 'name';
 let genreFilter = null;
 let upNextCache = [];
 let statsCache = null;
@@ -4226,12 +4302,7 @@ function showListRow(show) {
 
   const expandBody = isExpanded ? `
     <div class="list-row-expand-body" id="list-expand-${showId}" onclick="event.stopPropagation()">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
-        <span class="seasons-label">Episodes</span>
-        <button class="mark-season-btn" style="font-size:0.75rem;" onclick="event.stopPropagation();toggleHideWatchedSeasons(${showId})" id="hide-watched-btn-${showId}">
-          ${hideWatchedSeasonsMap[showId] === false ? '🙈 Hide Watched Seasons' : '👁 Show Watched Seasons'}
-        </button>
-      </div>
+      <div class="seasons-label" style="margin-bottom:0.5rem;font-size:0.8rem;">📋 Seasons & Episodes</div>
       <div id="list-seasons-${showId}">
         <div style="display:flex;justify-content:center;padding:1rem;"><div class="spinner"></div></div>
       </div>
@@ -5385,12 +5456,7 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, c
     <p class="detail-overview">${esc(tmdb.overview || 'No overview available.')}</p>
 
     ${isTracked ? `<div class="seasons-section" id="seasons-section-${tmdb.id}">
-      <div class="seasons-header">
-        <span class="seasons-label">📋 Seasons & Episodes</span>
-        <button class="mark-season-btn" style="font-size:0.78rem;" onclick="toggleHideWatchedSeasons(${tmdb.id})" id="hide-watched-btn-${tmdb.id}">
-          ${hideWatchedSeasonsMap[tmdb.id] === false ? '🙈 Hide Watched Seasons' : '👁 Show Watched Seasons'}
-        </button>
-      </div>
+      <div class="seasons-label" style="margin-bottom:0.6rem;">📋 Seasons & Episodes</div>
       <div id="seasons-accordions">
         <div style="display:flex;justify-content:center;padding:1rem;"><div class="spinner"></div></div>
       </div>
@@ -5424,92 +5490,125 @@ async function loadSeasonsForDetail(tmdb, epProgress, containerId = 'seasons-acc
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const seasons = (tmdb.seasons || []).filter(s => s.season_number > 0);
+  const allSeasons = (tmdb.seasons || []).filter(s => s.season_number > 0);
   const today = new Date();
-  // Default is HIDDEN (true) unless the user has explicitly toggled it off (false)
   const hideWatched = hideWatchedSeasonsMap[tmdb.id] !== false;
 
-  let html = '';
-  let hiddenCount = 0;
-
-  for (const s of seasons) {
+  // Pre-compute watched status for each season from episode_progress
+  const seasonMeta = [];
+  for (const s of allSeasons) {
     let seasonData;
-    try {
-      seasonData = await tmdbSeason(tmdb.id, s.season_number);
-    } catch(e) { continue; }
-
+    try { seasonData = await tmdbSeason(tmdb.id, s.season_number); }
+    catch(e) { continue; }
     const eps = seasonData.episodes || [];
-    const watchedEps = epProgress.filter(p => p.season_number === s.season_number && p.watched);
-    const airableEps = eps.filter(e => e.air_date && new Date(e.air_date) <= today);
-    const total = airableEps.length;
-    const watched = watchedEps.length;
-    const pct = total > 0 ? Math.round((watched / total) * 100) : 0;
+    const airable = eps.filter(e => e.air_date && new Date(e.air_date) <= today);
+    const watched = epProgress.filter(p => p.season_number === s.season_number && p.watched).length;
+    const total = airable.length;
     const isDone = total > 0 && watched >= total;
     const isPartial = watched > 0 && !isDone;
-
-    if (hideWatched && isDone) {
-      hiddenCount++;
-      continue;
-    }
-
-    const seasonKey = `${tmdb.id}-${s.season_number}`;
-    const isOpen = openSeasonIds.has(seasonKey);
-
-    html += `
-      <div class="season-accordion ${isOpen ? 'open' : ''}" id="season-${tmdb.id}-${s.season_number}">
-        <div class="season-head" onclick="event.stopPropagation();toggleSeason(${tmdb.id},${s.season_number})">
-          <span class="season-chevron">▶</span>
-          <span class="season-name">${esc(s.name)}</span>
-          <span class="season-progress-text">${watched}/${total}</span>
-          <div class="season-mini-progress">
-            <div class="season-mini-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
-          </div>
-          <div class="season-check ${isDone ? 'done' : isPartial ? 'partial' : ''}">
-            ${isDone ? '✓' : ''}
-          </div>
-          <button class="mark-season-btn" onclick="event.stopPropagation();markSeason(${tmdb.id},${s.season_number},${!isDone})" title="${isDone ? 'Unmark all' : 'Mark all watched'}">
-            ${isDone ? '↩' : '✓ All'}
-          </button>
-        </div>
-        <div class="season-episodes" id="eps-${tmdb.id}-${s.season_number}">
-          ${eps.map(e => {
-            const isFuture = !e.air_date || new Date(e.air_date) > today;
-            const watchedRecord = epProgress.find(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
-            const isWatched = !!watchedRecord;
-            const watchedAgo = isWatched && watchedRecord.watched_at ? timeAgo(watchedRecord.watched_at) : null;
-            return `
-              <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" onclick="${isFuture ? '' : `event.stopPropagation();toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
-                <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
-                <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
-                <span class="ep-name">${esc(e.name)}</span>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
-                  <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
-                  ${watchedAgo ? `<span style="font-size:0.66rem;color:var(--green);margin-top:0.1rem;">watched ${watchedAgo}</span>` : ''}
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
-      </div>`;
+    seasonMeta.push({ s, eps, airable, watched, total, isDone, isPartial, seasonData });
   }
 
-  if (!html) {
-    html = hideWatched && hiddenCount > 0
-      ? `<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem;">All ${hiddenCount} season${hiddenCount !== 1 ? 's' : ''} fully watched and hidden. Click "Show Watched Seasons" to view.</div>`
-      : '<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem;">No season data available.</div>';
-  } else if (hideWatched && hiddenCount > 0) {
-    html += `<div style="color:var(--text-muted);font-size:0.78rem;padding:0.5rem;">${hiddenCount} fully-watched season${hiddenCount !== 1 ? 's' : ''} hidden</div>`;
+  const visibleSeasons = seasonMeta.filter(m => !hideWatched || !m.isDone);
+  const hiddenCount = seasonMeta.length - visibleSeasons.length;
+
+  // Determine selected season: persist previous selection, or pick first unwatched, or first
+  let selected = selectedSeasonMap[tmdb.id];
+  const isSelectedVisible = visibleSeasons.some(m => m.s.season_number === selected);
+  if (!selected || !isSelectedVisible) {
+    const firstUnwatched = visibleSeasons.find(m => !m.isDone);
+    selected = firstUnwatched?.s.season_number ?? visibleSeasons[0]?.s.season_number ?? 1;
+    selectedSeasonMap[tmdb.id] = selected;
   }
 
-  container.innerHTML = html;
+  // Build pill row
+  const pillsHtml = seasonMeta.map(m => {
+    const isHidden = hideWatched && m.isDone && m.s.season_number !== selected;
+    if (isHidden) return '';
+    const isActive = m.s.season_number === selected;
+    const pillClass = `season-pill ${isActive ? 'active' : ''} ${m.isDone ? 'done' : m.isPartial ? 'partial' : ''}`;
+    const indicator = m.isDone ? ' ✓' : m.isPartial ? `<span class="season-pill-dot"></span>` : '';
+    return `<button class="${pillClass}" onclick="event.stopPropagation();selectSeasonPill(${tmdb.id},${m.s.season_number})">S${m.s.season_number}${indicator}</button>`;
+  }).join('');
+
+  const showWatchedBtn = hideWatched && hiddenCount > 0
+    ? `<button class="season-show-watched-btn" onclick="event.stopPropagation();toggleHideWatchedSeasons(${tmdb.id})">👁 Show Watched (${hiddenCount})</button>`
+    : hiddenCount === 0 && !hideWatched
+    ? `<button class="season-show-watched-btn" onclick="event.stopPropagation();toggleHideWatchedSeasons(${tmdb.id})">🙈 Hide Watched</button>`
+    : '';
+
+  // Build episode panel for selected season
+  const selMeta = seasonMeta.find(m => m.s.season_number === selected);
+  const epPanelHtml = selMeta ? buildEpisodePanel(tmdb, selMeta, epProgress) : '';
+
+  container.innerHTML = `
+    <div class="season-pills-wrap">
+      <div class="season-pills-row">
+        ${pillsHtml}
+        ${showWatchedBtn}
+      </div>
+      <div id="season-ep-panel-${tmdb.id}">
+        ${epPanelHtml}
+      </div>
+    </div>`;
 }
 
+function buildEpisodePanel(tmdb, meta, epProgress) {
+  const today = new Date();
+  const { s, eps, airable, watched, total, isDone } = meta;
+
+  const epsHtml = eps.map(e => {
+    const isFuture = !e.air_date || new Date(e.air_date) > today;
+    const watchedRecord = epProgress.find(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
+    const isWatched = !!watchedRecord;
+    const watchedAgo = isWatched && watchedRecord.watched_at ? timeAgo(watchedRecord.watched_at) : null;
+    return `
+      <div class="episode-row ${isFuture ? 'ep-row-future' : ''}" onclick="${isFuture ? '' : `event.stopPropagation();toggleEpisode(${tmdb.id},${s.season_number},${e.episode_number})`}">
+        <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
+        <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
+        <span class="ep-name">${esc(e.name)}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+          <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
+          ${watchedAgo ? `<span style="font-size:0.66rem;color:var(--green);margin-top:0.1rem;">watched ${watchedAgo}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="season-ep-panel">
+      <div class="season-ep-header">
+        <div>
+          <span class="season-ep-header-title">${esc(s.name)}</span>
+          <span class="season-ep-header-meta"> · ${watched}/${total} watched</span>
+        </div>
+        <button class="mark-season-btn" onclick="event.stopPropagation();markSeason(${tmdb.id},${s.season_number},${!isDone})">
+          ${isDone ? '↩ Unmark' : '✓ Mark All'}
+        </button>
+      </div>
+      <div class="season-episodes" style="display:block;">
+        ${epsHtml}
+      </div>
+    </div>`;
+}
+
+async function selectSeasonPill(showId, seasonNum) {
+  selectedSeasonMap[showId] = seasonNum;
+  const show = trackedShows.find(s => s.tmdb_id === showId);
+  if (!show?.tmdb) return;
+  // Just re-render the episode panel without re-fetching all seasons
+  const progress = await getEpisodeProgress(showId);
+  const containerId = getActiveSeasonsContainerId(showId);
+  // Refresh the whole selector so pill active state updates
+  loadSeasonsForDetail(show.tmdb, progress, containerId);
+}
+
+
+
 function toggleHideWatchedSeasons(showId) {
-  // Default is hidden (true); toggle to opposite of current state
   const currentlyHidden = hideWatchedSeasonsMap[showId] !== false;
   hideWatchedSeasonsMap[showId] = !currentlyHidden;
-  const btn = document.getElementById(`hide-watched-btn-${showId}`);
-  if (btn) btn.textContent = hideWatchedSeasonsMap[showId] === false ? '🙈 Hide Watched Seasons' : '👁 Show Watched Seasons';
-
+  // Clear selected season so it re-picks the first unwatched after toggle
+  delete selectedSeasonMap[showId];
   const show = trackedShows.find(s => s.tmdb_id === showId);
   if (show?.tmdb) {
     getEpisodeProgress(showId).then(progress => loadSeasonsForDetail(show.tmdb, progress, getActiveSeasonsContainerId(showId)));
