@@ -237,6 +237,66 @@
       50% { opacity: 0.6; transform: scale(1.25); box-shadow: 0 0 0 4px rgba(224,82,82,0); }
     }
 
+    /* STREAMING ICONS IN LIST ROW */
+    .list-providers {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .list-provider-logo {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      object-fit: cover;
+      opacity: 0.85;
+      transition: opacity 0.15s;
+    }
+    .list-provider-logo:hover { opacity: 1; }
+    .list-plex-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: #E5A00D;
+      color: #000;
+      font-size: 0.6rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
+      opacity: 0.9;
+    }
+    .list-provider-more {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* PLEX TOGGLE IN DETAIL PANEL */
+    .plex-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.4rem 0.85rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .plex-toggle-btn:hover { border-color: #E5A00D; color: #E5A00D; }
+    .plex-toggle-btn.active {
+      background: rgba(229,160,13,0.12);
+      border-color: rgba(229,160,13,0.4);
+      color: #E5A00D;
+    }
+
     /* DISCOVER DROPDOWN */
     .discover-btn {
       background: none;
@@ -1328,6 +1388,18 @@
     .ep-name:hover { color: var(--amber); }
     .episode-row.summary-open .ep-name { white-space: normal; color: var(--amber); }
     .episode-row.summary-open .ep-summary { display: block; }
+    .ep-summary-chevron {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-left: 0.25rem;
+      display: inline-block;
+      transition: transform 0.2s;
+      vertical-align: middle;
+    }
+    .episode-row.summary-open .ep-summary-chevron {
+      transform: rotate(180deg);
+      color: var(--amber);
+    }
     .episode-row {
       display: flex;
       align-items: center;
@@ -2636,7 +2708,8 @@ const FEED_PAGE_SIZE = 30;
 let discoverList = null;
 let discoverCache = {};
 let discoverGenreFilter = null;
-let omdbCache = {}; // { imdbId: omdbData } keyed by IMDb ID
+let omdbCache = {};
+let providerCache = {}; // { [tmdbId]: [{ logo_path, provider_name }] } cached per show
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -3417,6 +3490,40 @@ async function getEpisodeProgress(tmdbShowId) {
     .select('*')
     .eq('tmdb_show_id', tmdbShowId);
   return data || [];
+}
+
+// Lazy-fetch providers for a show and cache them
+async function fetchProviders(tmdbId) {
+  if (providerCache[tmdbId] !== undefined) return providerCache[tmdbId];
+  try {
+    const data = await tmdbProviders(tmdbId);
+    const providers = (data?.results?.US?.flatrate || []).slice(0, 3);
+    providerCache[tmdbId] = providers;
+    return providers;
+  } catch (e) {
+    providerCache[tmdbId] = [];
+    return [];
+  }
+}
+
+// Toggle Plex flag for a show
+async function togglePlexFlag(tmdbId, currentValue) {
+  const newVal = !currentValue;
+  await db.from('tracked_shows')
+    .update({ on_plex: newVal })
+    .eq('tmdb_id', tmdbId)
+    .eq('user_id', currentUser.id);
+  const show = trackedShows.find(s => s.tmdb_id === tmdbId);
+  if (show) show.on_plex = newVal;
+  // Update the toggle button in detail panel if open
+  const btn = document.getElementById(`plex-toggle-${tmdbId}`);
+  if (btn) {
+    btn.classList.toggle('active', newVal);
+    btn.textContent = newVal ? '📦 On Plex ✓' : '📦 Add to Plex';
+  }
+  // Refresh the list row to show/hide Plex icon
+  renderTab();
+  toast(newVal ? 'Marked as on Plex' : 'Removed Plex flag');
 }
 
 // ─── AGGREGATE PROGRESS (for list views & "Unwatched" sub-tab) ────────────────
@@ -4320,6 +4427,23 @@ function showListRow(show) {
     }
   }
 
+  // Provider icons — use cached data if available, else show placeholder and load async
+  const cachedProviders = providerCache[showId];
+  const plexOn = show.on_plex;
+  let providersHtml = '';
+
+  if (cachedProviders !== undefined || plexOn) {
+    providersHtml = buildProviderIcons(showId, cachedProviders || [], plexOn);
+  } else {
+    // Placeholder — will be filled by async load below
+    providersHtml = `<div class="list-providers" id="providers-${showId}"></div>`;
+    // Kick off async fetch without awaiting
+    fetchProviders(showId).then(providers => {
+      const el = document.getElementById(`providers-${showId}`);
+      if (el) el.outerHTML = buildProviderIcons(showId, providers, show.on_plex);
+    });
+  }
+
   const expandBody = isExpanded ? `
     <div class="list-row-expand-body" id="list-expand-${showId}" onclick="event.stopPropagation()">
       <div class="seasons-label" style="margin-bottom:0.5rem;font-size:0.8rem;">📋 Seasons & Episodes</div>
@@ -4337,6 +4461,7 @@ function showListRow(show) {
           <div class="list-meta">${statusBadge(t.status)} · ${t.first_air_date?.slice(0,4) || '—'}</div>
           ${nextAirHtml}
         </div>
+        ${providersHtml}
         ${progress.total > 0 ? `
         <div class="list-progress">
           <div class="list-progress-text">${progress.watched}/${progress.total} eps</div>
@@ -4346,6 +4471,17 @@ function showListRow(show) {
       </div>
       ${expandBody}
     </div>`;
+}
+
+function buildProviderIcons(showId, providers, plexOn) {
+  const logos = providers.slice(0, 3).map(p =>
+    `<img class="list-provider-logo" src="${TMDB_IMG}/w45${p.logo_path}" alt="${esc(p.provider_name)}" title="${esc(p.provider_name)}" />`
+  ).join('');
+  const plexBadge = plexOn ? `<span class="list-plex-badge" title="Available on Plex">P</span>` : '';
+  const hasAny = logos || plexBadge;
+  return hasAny
+    ? `<div class="list-providers" id="providers-${showId}">${plexBadge}${logos}</div>`
+    : `<div class="list-providers" id="providers-${showId}"></div>`;
 }
 
 async function toggleListRowExpand(showId) {
@@ -5467,6 +5603,13 @@ function renderDetailPanel(tmdb, show, providers, similar, epProgress, videos, c
             : `<button class="btn btn-primary" style="width:auto;" onclick="addShow(${tmdb.id},'watching')">+ Add to Watching</button>
                <button class="btn btn-ghost" onclick="addShow(${tmdb.id},'watchlist')">Add to Watchlist</button>`}
         </div>
+        ${isTracked ? `
+        <div style="margin-top:0.5rem;">
+          <button class="plex-toggle-btn ${show?.on_plex ? 'active' : ''}" id="plex-toggle-${tmdb.id}"
+                  onclick="togglePlexFlag(${tmdb.id}, ${!!show?.on_plex})">
+            📦 ${show?.on_plex ? 'On Plex ✓' : 'Add to Plex'}
+          </button>
+        </div>` : ''}
       </div>
     </div>
 
@@ -5592,7 +5735,7 @@ function buildEpisodePanel(tmdb, meta, epProgress) {
           <div class="ep-check ${isWatched ? 'watched' : ''}">${isWatched ? '✓' : ''}</div>
           <span class="ep-num">E${String(e.episode_number).padStart(2,'0')}</span>
           <span class="ep-name" onclick="${hasSummary ? `event.stopPropagation();toggleEpSummary('${epId}')` : ''}"
-                title="${hasSummary ? 'Tap for summary' : ''}">${esc(e.name)}</span>
+                title="${hasSummary ? 'Tap for summary' : ''}">${esc(e.name)}${hasSummary ? ' <span class="ep-summary-chevron">▾</span>' : ''}</span>
           <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
             <span class="ep-date">${e.air_date ? formatDate(e.air_date) : 'Upcoming'}</span>
             ${watchedAgo ? `<span style="font-size:0.66rem;color:var(--green);margin-top:0.1rem;">watched ${watchedAgo}</span>` : ''}
