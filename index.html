@@ -2693,6 +2693,7 @@ let openSeasonIds = new Set();
 let expandedListRows = new Set();
 let selectedSeasonMap = {}; // { [showId]: seasonNumber } — tracks selected pill per show
 let hideWatchedSeasonsMap = {}; // { [showId]: boolean } whether to hide fully-watched seasons
+let hideWatchedEpisodesMap = {}; // { [showId]: boolean } whether to hide watched episodes within a season
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarEpisodeCache = {}; // { 'YYYY-MM': [{date, showId, showName, poster, season, episode, name}] }
@@ -5743,8 +5744,16 @@ async function loadSeasonsForDetail(tmdb, epProgress, containerId = 'seasons-acc
 function buildEpisodePanel(tmdb, meta, epProgress) {
   const today = new Date();
   const { s, eps, airable, watched, total, isDone } = meta;
+  const hideWatchedEps = hideWatchedEpisodesMap[tmdb.id] !== false; // default hidden
 
-  const epsHtml = eps.map(e => {
+  const visibleEps = eps.filter(e => {
+    if (!hideWatchedEps) return true;
+    const isWatched = epProgress.some(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
+    return !isWatched;
+  });
+  const hiddenEpCount = eps.length - visibleEps.length;
+
+  const epsHtml = visibleEps.map(e => {
     const isFuture = !e.air_date || new Date(e.air_date) > today;
     const watchedRecord = epProgress.find(p => p.season_number === s.season_number && p.episode_number === e.episode_number && p.watched);
     const isWatched = !!watchedRecord;
@@ -5769,6 +5778,18 @@ function buildEpisodePanel(tmdb, meta, epProgress) {
       </div>`;
   }).join('');
 
+  const emptyMsg = hideWatchedEps && hiddenEpCount === eps.length
+    ? `<div style="color:var(--text-muted);font-size:0.82rem;padding:0.75rem 1rem;">All ${hiddenEpCount} episode${hiddenEpCount !== 1 ? 's' : ''} watched and hidden.</div>`
+    : '';
+
+  const hideEpBtn = `
+    <button class="season-show-watched-btn" style="font-size:0.72rem;"
+            onclick="event.stopPropagation();toggleHideWatchedEpisodes(${tmdb.id})">
+      ${hideWatchedEps
+        ? `👁 Show Watched${hiddenEpCount > 0 ? ` (${hiddenEpCount})` : ''}`
+        : '🙈 Hide Watched'}
+    </button>`;
+
   return `
     <div class="season-ep-panel">
       <div class="season-ep-header">
@@ -5776,14 +5797,28 @@ function buildEpisodePanel(tmdb, meta, epProgress) {
           <span class="season-ep-header-title">${esc(s.name)}</span>
           <span class="season-ep-header-meta"> · ${watched}/${total} watched</span>
         </div>
-        <button class="mark-season-btn" onclick="event.stopPropagation();markSeason(${tmdb.id},${s.season_number},${!isDone})">
-          ${isDone ? '↩ Unmark' : '✓ Mark All'}
-        </button>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          ${watched > 0 || !hideWatchedEps ? hideEpBtn : ''}
+          <button class="mark-season-btn" onclick="event.stopPropagation();markSeason(${tmdb.id},${s.season_number},${!isDone})">
+            ${isDone ? '↩ Unmark' : '✓ Mark All'}
+          </button>
+        </div>
       </div>
       <div class="season-episodes" style="display:block;">
-        ${epsHtml}
+        ${epsHtml || emptyMsg}
       </div>
     </div>`;
+}
+
+function toggleHideWatchedEpisodes(showId) {
+  const currentlyHidden = hideWatchedEpisodesMap[showId] !== false;
+  hideWatchedEpisodesMap[showId] = !currentlyHidden;
+  const show = trackedShows.find(s => s.tmdb_id === showId);
+  if (show?.tmdb) {
+    getEpisodeProgress(showId).then(progress =>
+      loadSeasonsForDetail(show.tmdb, progress, getActiveSeasonsContainerId(showId))
+    );
+  }
 }
 
 function toggleEpSummary(epId) {
