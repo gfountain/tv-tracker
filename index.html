@@ -4010,13 +4010,16 @@ async function refreshShowProgressCache() {
     .select('tmdb_show_id, watched')
     .in('tmdb_show_id', showIds);
 
-  // Count watched AND total tracked episodes per show from episode_progress
+  // Count watched and explicitly-unwatched tracked episodes per show
   const watchedByShow = {};
+  const unwatchedByShow = {};
   const totalTrackedByShow = {};
   (allProgress || []).forEach(p => {
     totalTrackedByShow[p.tmdb_show_id] = (totalTrackedByShow[p.tmdb_show_id] || 0) + 1;
     if (p.watched) {
       watchedByShow[p.tmdb_show_id] = (watchedByShow[p.tmdb_show_id] || 0) + 1;
+    } else {
+      unwatchedByShow[p.tmdb_show_id] = (unwatchedByShow[p.tmdb_show_id] || 0) + 1;
     }
   });
 
@@ -4028,19 +4031,24 @@ async function refreshShowProgressCache() {
     const watched = watchedByShow[t.id] || 0;
     const trackedTotal = totalTrackedByShow[t.id] || 0;
 
-    // Use the larger of: estimated aired total OR actual tracked episodes in DB
-    // This ensures that if someone has marked more episodes than our estimate,
-    // the progress reflects reality rather than the estimate
+    // For display: total is the larger of estimate or what's been tracked
     let estimated = 0;
     if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date) <= today) {
       estimated = estimateAiredTotal(t);
     } else {
       estimated = t.number_of_episodes || 0;
     }
-
     const total = Math.max(estimated, trackedTotal);
     const pct = total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0;
-    showProgressCache[t.id] = { watched, total, pct, unwatched: Math.max(0, total - watched) };
+
+    // KEY FIX: unwatched = only explicitly tracked-but-unwatched rows
+    // NOT the difference between estimated total and watched count.
+    // A show only appears in Unwatched if it has rows marked watched=false in DB.
+    // Untracked seasons (no rows in episode_progress) are treated as "not started"
+    // rather than "unwatched" — they appear in All but not Unwatched filter.
+    const unwatched = unwatchedByShow[t.id] || 0;
+
+    showProgressCache[t.id] = { watched, total, pct, unwatched };
   }
 }
 
