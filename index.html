@@ -4010,10 +4010,12 @@ async function refreshShowProgressCache() {
     .select('tmdb_show_id, watched')
     .in('tmdb_show_id', showIds);
 
+  // Use Number() on all keys to avoid string/number type mismatches
   const watchedByShow = {};
   (allProgress || []).forEach(p => {
     if (p.watched) {
-      watchedByShow[p.tmdb_show_id] = (watchedByShow[p.tmdb_show_id] || 0) + 1;
+      const id = Number(p.tmdb_show_id);
+      watchedByShow[id] = (watchedByShow[id] || 0) + 1;
     }
   });
 
@@ -4021,20 +4023,23 @@ async function refreshShowProgressCache() {
   for (const show of trackedShows) {
     if (!show.tmdb) continue;
     const t = show.tmdb;
-    const watched = watchedByShow[t.id] || 0;
+    const id = Number(t.id);
+    const watched = watchedByShow[id] || 0;
 
-    // Estimate aired total from TMDB data
-    let airedTotal = 0;
+    // Use number_of_episodes as the reliable display total
+    const displayTotal = t.number_of_episodes || 0;
+
+    // Estimate aired total for the Unwatched filter
+    let airedTotal = displayTotal;
     if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date + 'T00:00:00') <= today) {
-      airedTotal = estimateAiredTotal(t);
+      const est = estimateAiredTotal(t);
+      if (est > 0) airedTotal = est;
     }
 
-    // Total for display — use number_of_episodes for full episode count
-    const displayTotal = t.number_of_episodes || airedTotal || 0;
     const pct = displayTotal > 0 ? Math.min(100, Math.round((watched / displayTotal) * 100)) : 0;
     const unwatched = Math.max(0, airedTotal - watched);
 
-    showProgressCache[Number(t.id)] = { watched, total: displayTotal, pct, unwatched, airedTotal };
+    showProgressCache[id] = { watched, total: displayTotal, pct, unwatched, airedTotal };
   }
 }
 
