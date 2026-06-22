@@ -6615,12 +6615,18 @@ async function toggleEpisode(showId, seasonNum, epNum) {
     const newProgress = await getEpisodeProgress(showId);
     loadSeasonsForDetail(show.tmdb, newProgress, getActiveSeasonsContainerId(showId));
   }
-  refreshShowProgressCache();
+
+  // Await the cache refresh so progress counts are accurate before any render
+  await refreshShowProgressCache();
+
   if (nowWatched) {
     logActivity('episode_watched', showId, { season: seasonNum, episode: epNum });
-    // Check if this completes the whole show
     await checkAutoComplete(showId);
   }
+
+  // Update the list row progress bar in-place without collapsing expanded rows
+  updateListRowProgress(showId);
+
   refreshUpNextCache().then(() => {
     if (currentTab === 'myshows' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
@@ -6650,11 +6656,18 @@ async function markSeason(showId, seasonNum, watched) {
 
   const newProgress = await getEpisodeProgress(showId);
   loadSeasonsForDetail(tmdb, newProgress, getActiveSeasonsContainerId(showId));
-  refreshShowProgressCache();
+
+  // Await cache refresh so progress counts are accurate
+  await refreshShowProgressCache();
+
   if (watched) {
     logActivity('season_watched', showId, { season: seasonNum });
     await checkAutoComplete(showId);
   }
+
+  // Update the list row progress bar in-place without collapsing expanded rows
+  updateListRowProgress(showId);
+
   refreshUpNextCache().then(() => {
     if (currentTab === 'myshows' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
@@ -6663,7 +6676,36 @@ async function markSeason(showId, seasonNum, watched) {
   toast(watched ? `Season ${seasonNum} marked as watched` : `Season ${seasonNum} unmarked`);
 }
 
-// ─── AUTO-COMPLETE ────────────────────────────────────────────────────────────
+// Update a specific list row's progress bar and count in-place
+// without re-rendering the whole tab (which would collapse expanded rows)
+function updateListRowProgress(showId) {
+  const show = trackedShows.find(s => s.tmdb_id === showId);
+  if (!show) return;
+  const progress = getLocalProgress(show);
+  const row = document.getElementById(`list-row-${showId}`);
+  if (!row) return;
+
+  // Update progress text
+  const progressText = row.querySelector('.list-progress-text');
+  if (progressText) progressText.textContent = `${progress.watched}/${progress.total} eps`;
+
+  // Update progress bar fill
+  const pbarFill = row.querySelector('.list-pbar-fill');
+  if (pbarFill) pbarFill.style.width = `${progress.pct}%`;
+
+  // Update streaming providers unwatched badge if present
+  const unwatchedBadge = row.querySelector('.list-unwatched-badge');
+  if (unwatchedBadge) {
+    if (progress.unwatched > 0) {
+      unwatchedBadge.textContent = `${progress.unwatched} new`;
+      unwatchedBadge.style.display = '';
+    } else {
+      unwatchedBadge.style.display = 'none';
+    }
+  }
+}
+
+
 // When a show is Ended or Cancelled and all aired episodes are now watched,
 // automatically move it to Completed.
 async function checkAutoComplete(showId) {
