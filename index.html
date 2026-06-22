@@ -4010,16 +4010,10 @@ async function refreshShowProgressCache() {
     .select('tmdb_show_id, watched')
     .in('tmdb_show_id', showIds);
 
-  // Count watched and explicitly-unwatched tracked episodes per show
   const watchedByShow = {};
-  const unwatchedByShow = {};
-  const totalTrackedByShow = {};
   (allProgress || []).forEach(p => {
-    totalTrackedByShow[p.tmdb_show_id] = (totalTrackedByShow[p.tmdb_show_id] || 0) + 1;
     if (p.watched) {
       watchedByShow[p.tmdb_show_id] = (watchedByShow[p.tmdb_show_id] || 0) + 1;
-    } else {
-      unwatchedByShow[p.tmdb_show_id] = (unwatchedByShow[p.tmdb_show_id] || 0) + 1;
     }
   });
 
@@ -4027,28 +4021,20 @@ async function refreshShowProgressCache() {
   for (const show of trackedShows) {
     if (!show.tmdb) continue;
     const t = show.tmdb;
-
     const watched = watchedByShow[t.id] || 0;
-    const trackedTotal = totalTrackedByShow[t.id] || 0;
 
-    // For display: total is the larger of estimate or what's been tracked
-    let estimated = 0;
-    if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date) <= today) {
-      estimated = estimateAiredTotal(t);
-    } else {
-      estimated = t.number_of_episodes || 0;
+    // Estimate aired total from TMDB data
+    let airedTotal = 0;
+    if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date + 'T00:00:00') <= today) {
+      airedTotal = estimateAiredTotal(t);
     }
-    const total = Math.max(estimated, trackedTotal);
-    const pct = total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0;
 
-    // KEY FIX: unwatched = only explicitly tracked-but-unwatched rows
-    // NOT the difference between estimated total and watched count.
-    // A show only appears in Unwatched if it has rows marked watched=false in DB.
-    // Untracked seasons (no rows in episode_progress) are treated as "not started"
-    // rather than "unwatched" — they appear in All but not Unwatched filter.
-    const unwatched = unwatchedByShow[t.id] || 0;
+    // Total for display — use number_of_episodes for full episode count
+    const displayTotal = t.number_of_episodes || airedTotal || 0;
+    const pct = displayTotal > 0 ? Math.min(100, Math.round((watched / displayTotal) * 100)) : 0;
+    const unwatched = Math.max(0, airedTotal - watched);
 
-    showProgressCache[t.id] = { watched, total, pct, unwatched };
+    showProgressCache[t.id] = { watched, total: displayTotal, pct, unwatched, airedTotal };
   }
 }
 
@@ -4646,13 +4632,27 @@ function renderTab() {
 }
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
-// Returns true if a show has at least one aired (air_date <= today) episode
-// that hasn't been watched. Uses the progress cache for watched count vs
-// an estimated aired total based on last_episode_to_air.
+// Returns true if a show has aired episodes that haven't been watched.
+// Uses watched count from cache vs estimated aired total from TMDB.
+// A show with NO episode_progress rows at all is treated as having
+// unwatched episodes if it has aired content.
 function hasUnwatchedAiredEpisodes(show) {
-  const p = getLocalProgress(show);
-  if (p.total === 0 && p.watched === 0) return false;
-  return p.unwatched > 0;
+  if (show.status === 'completed') return false;
+  const t = show.tmdb;
+  if (!t) return false;
+
+  // No aired content yet
+  const lastAir = t.last_episode_to_air;
+  if (!lastAir?.air_date) return false;
+  if (new Date(lastAir.air_date + 'T00:00:00') > new Date()) return false;
+
+  // Estimate how many episodes have aired
+  const airedTotal = estimateAiredTotal(t);
+  if (airedTotal === 0) return false;
+
+  // How many has the user watched?
+  const watched = showProgressCache[t.id]?.watched || 0;
+  return watched < airedTotal;
 }
 
 function isUpcomingOnly(show) {
