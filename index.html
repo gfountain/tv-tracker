@@ -3862,7 +3862,7 @@ async function loadAllShows() {
 // Convert a show_cache row into a TMDB-shaped object the app expects
 function cacheToTmdb(c) {
   return {
-    id: c.tmdb_id,
+    id: Number(c.tmdb_id), // always numeric to avoid type mismatches
     name: c.name,
     poster_path: c.poster_path,
     backdrop_path: c.backdrop_path,
@@ -3870,7 +3870,7 @@ function cacheToTmdb(c) {
     next_episode_to_air: c.next_episode || null,
     last_episode_to_air: c.last_episode || null,
     number_of_seasons: c.number_of_seasons,
-    number_of_episodes: c.number_of_episodes || null,
+    number_of_episodes: c.number_of_episodes || 0,
     genres: c.genres || [],
     networks: c.networks || [],
     overview: c.overview || '',
@@ -4027,7 +4027,10 @@ async function refreshShowProgressCache() {
     const watched = watchedByShow[id] || 0;
 
     // Use number_of_episodes as the reliable display total
-    const displayTotal = t.number_of_episodes || 0;
+    // Fall back to estimateAiredTotal if number_of_episodes is missing from cache
+    const numEps = t.number_of_episodes || 0;
+    const airedEst = estimateAiredTotal(t) || 0;
+    const displayTotal = numEps || airedEst || 0;
 
     // Estimate aired total for the Unwatched filter
     let airedTotal = displayTotal;
