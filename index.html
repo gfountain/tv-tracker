@@ -4034,7 +4034,7 @@ async function refreshShowProgressCache() {
     const pct = displayTotal > 0 ? Math.min(100, Math.round((watched / displayTotal) * 100)) : 0;
     const unwatched = Math.max(0, airedTotal - watched);
 
-    showProgressCache[t.id] = { watched, total: displayTotal, pct, unwatched, airedTotal };
+    showProgressCache[Number(t.id)] = { watched, total: displayTotal, pct, unwatched, airedTotal };
   }
 }
 
@@ -4651,7 +4651,7 @@ function hasUnwatchedAiredEpisodes(show) {
   if (airedTotal === 0) return false;
 
   // How many has the user watched?
-  const watched = showProgressCache[t.id]?.watched || 0;
+  const watched = showProgressCache[Number(t.id)]?.watched || 0;
   return watched < airedTotal;
 }
 
@@ -5124,14 +5124,14 @@ function getLocalProgress(show) {
   // Completed shows always display as 100% — being in Completed means done
   if (show.status === 'completed') {
     const t = show.tmdb;
-    const total = showProgressCache[show.tmdb_id]?.total
+    const total = showProgressCache[Number(show.tmdb_id)]?.total
       || t?.number_of_episodes
       || estimateAiredTotal(t)
       || 1;
-    const watched = showProgressCache[show.tmdb_id]?.watched || total;
+    const watched = showProgressCache[Number(show.tmdb_id)]?.watched || total;
     return { watched, total, pct: 100, unwatched: 0 };
   }
-  const cached = showProgressCache[show.tmdb_id];
+  const cached = showProgressCache[Number(show.tmdb_id)];
   if (cached) return cached;
   const total = show.tmdb?.number_of_episodes || 0;
   return { total, watched: 0, pct: 0, unwatched: total };
@@ -6704,30 +6704,17 @@ async function markSeason(showId, seasonNum, watched) {
 // Update a specific list row's progress bar and count in-place
 // without re-rendering the whole tab (which would collapse expanded rows)
 function updateListRowProgress(showId) {
-  const show = trackedShows.find(s => s.tmdb_id === showId);
+  const show = trackedShows.find(s => Number(s.tmdb_id) === Number(showId));
   if (!show) return;
   const progress = getLocalProgress(show);
   const row = document.getElementById(`list-row-${showId}`);
   if (!row) return;
 
-  // Update progress text
   const progressText = row.querySelector('.list-progress-text');
   if (progressText) progressText.textContent = `${progress.watched}/${progress.total} eps`;
 
-  // Update progress bar fill
   const pbarFill = row.querySelector('.list-pbar-fill');
   if (pbarFill) pbarFill.style.width = `${progress.pct}%`;
-
-  // Update streaming providers unwatched badge if present
-  const unwatchedBadge = row.querySelector('.list-unwatched-badge');
-  if (unwatchedBadge) {
-    if (progress.unwatched > 0) {
-      unwatchedBadge.textContent = `${progress.unwatched} new`;
-      unwatchedBadge.style.display = '';
-    } else {
-      unwatchedBadge.style.display = 'none';
-    }
-  }
 }
 
 
