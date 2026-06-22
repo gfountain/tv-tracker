@@ -4007,31 +4007,38 @@ async function refreshShowProgressCache() {
   if (!showIds.length) return;
 
   const { data: allProgress } = await db.from('episode_progress')
-    .select('*')
-    .in('tmdb_show_id', showIds)
-    .eq('watched', true);
+    .select('tmdb_show_id, watched')
+    .in('tmdb_show_id', showIds);
 
+  // Count watched AND total tracked episodes per show from episode_progress
   const watchedByShow = {};
+  const totalTrackedByShow = {};
   (allProgress || []).forEach(p => {
-    watchedByShow[p.tmdb_show_id] = (watchedByShow[p.tmdb_show_id] || 0) + 1;
+    totalTrackedByShow[p.tmdb_show_id] = (totalTrackedByShow[p.tmdb_show_id] || 0) + 1;
+    if (p.watched) {
+      watchedByShow[p.tmdb_show_id] = (watchedByShow[p.tmdb_show_id] || 0) + 1;
+    }
   });
 
   const today = new Date();
   for (const show of trackedShows) {
     if (!show.tmdb) continue;
     const t = show.tmdb;
-    // Approximate "aired episodes" using last_episode_to_air's air_date cutoff
-    // combined with number_of_episodes as an upper bound. This avoids fetching
-    // every season for every show just to render list badges.
-    let total = 0;
-    if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date) <= today) {
-      total = t.last_episode_to_air.episode_number != null
-        ? estimateAiredTotal(t)
-        : (t.number_of_episodes || 0);
-    } else {
-      total = t.number_of_episodes || 0;
-    }
+
     const watched = watchedByShow[t.id] || 0;
+    const trackedTotal = totalTrackedByShow[t.id] || 0;
+
+    // Use the larger of: estimated aired total OR actual tracked episodes in DB
+    // This ensures that if someone has marked more episodes than our estimate,
+    // the progress reflects reality rather than the estimate
+    let estimated = 0;
+    if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date) <= today) {
+      estimated = estimateAiredTotal(t);
+    } else {
+      estimated = t.number_of_episodes || 0;
+    }
+
+    const total = Math.max(estimated, trackedTotal);
     const pct = total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0;
     showProgressCache[t.id] = { watched, total, pct, unwatched: Math.max(0, total - watched) };
   }
