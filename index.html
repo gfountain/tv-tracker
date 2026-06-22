@@ -5113,6 +5113,16 @@ async function toggleListRowExpand(showId) {
 }
 
 function getLocalProgress(show) {
+  // Completed shows always display as 100% — being in Completed means done
+  if (show.status === 'completed') {
+    const t = show.tmdb;
+    const total = showProgressCache[show.tmdb_id]?.total
+      || t?.number_of_episodes
+      || estimateAiredTotal(t)
+      || 1;
+    const watched = showProgressCache[show.tmdb_id]?.watched || total;
+    return { watched, total, pct: 100, unwatched: 0 };
+  }
   const cached = showProgressCache[show.tmdb_id];
   if (cached) return cached;
   const total = show.tmdb?.number_of_episodes || 0;
