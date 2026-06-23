@@ -7141,33 +7141,37 @@ function setActiveTocLink(sectionId) {
 
 function initHelpScrollSpy(contentEl) {
   if (!contentEl) return;
-  if (helpScrollSpyObserver) helpScrollSpyObserver.disconnect();
+  if (helpScrollSpyObserver) {
+    helpScrollSpyObserver.disconnect();
+    helpScrollSpyObserver = null;
+  }
 
-  const sections = contentEl.querySelectorAll('.help-section');
+  const sections = Array.from(contentEl.querySelectorAll('.help-section'));
   if (!sections.length) return;
 
-  // Use IntersectionObserver with the content element as the root
-  helpScrollSpyObserver = new IntersectionObserver(entries => {
-    // Find the topmost visible section
-    let topSection = null;
-    let topY = Infinity;
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const y = entry.boundingClientRect.top;
-        if (y < topY) { topY = y; topSection = entry.target; }
-      }
-    });
-    if (topSection) setActiveTocLink(topSection.id);
-  }, {
-    root: contentEl,
-    rootMargin: '0px 0px -60% 0px', // trigger when section is in top 40% of viewport
-    threshold: 0
-  });
-
-  sections.forEach(s => helpScrollSpyObserver.observe(s));
-
   // Highlight first section immediately
-  if (sections[0]) setActiveTocLink(sections[0].id);
+  setActiveTocLink(sections[0].id);
+
+  // Use scroll event — simpler and more reliable than IntersectionObserver
+  // for a scrollable div with many short sections
+  function onScroll() {
+    const scrollTop = contentEl.scrollTop;
+    const containerTop = contentEl.getBoundingClientRect().top;
+
+    let current = sections[0].id;
+    for (const section of sections) {
+      const sectionTop = section.getBoundingClientRect().top - containerTop;
+      if (sectionTop <= 80) { // 80px offset from top of content area
+        current = section.id;
+      }
+    }
+    setActiveTocLink(current);
+  }
+
+  contentEl.addEventListener('scroll', onScroll, { passive: true });
+
+  // Store cleanup reference on the element itself
+  contentEl._helpScrollCleanup = () => contentEl.removeEventListener('scroll', onScroll);
 }
 
 function hideHelp() {
