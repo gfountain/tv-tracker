@@ -4006,19 +4006,26 @@ async function refreshShowProgressCache() {
   const showIds = trackedShows.filter(s => s.tmdb).map(s => s.tmdb_id);
   if (!showIds.length) return;
 
-  const { data: allProgress } = await db.from('episode_progress')
-    .select('tmdb_show_id, watched')
-    .in('tmdb_show_id', showIds);
-
-  // Use Number() on all keys to avoid string/number type mismatches
+  // Fetch ALL watched episode_progress rows with pagination
+  // Supabase default limit is 1000 which is easily exceeded with many shows
   const watchedByShow = {};
-  (allProgress || []).forEach(p => {
-    if (p.watched) {
+  let from = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data, error } = await db.from('episode_progress')
+      .select('tmdb_show_id')
+      .in('tmdb_show_id', showIds)
+      .eq('watched', true)
+      .range(from, from + PAGE_SIZE - 1);
+    if (error || !data?.length) break;
+    data.forEach(p => {
       const id = Number(p.tmdb_show_id);
       watchedByShow[id] = (watchedByShow[id] || 0) + 1;
-    }
-  });
-  console.log('[Progress] episode_progress rows:', allProgress?.length, 'watchedByShow:', watchedByShow);
+    });
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  console.log('[Progress] watchedByShow:', watchedByShow);
   const today = new Date();
   for (const show of trackedShows) {
     if (!show.tmdb) continue;
