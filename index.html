@@ -4681,9 +4681,9 @@ function hasUnwatchedAiredEpisodes(show) {
   const cache = showProgressCache[Number(t.id)];
   if (!cache) return false;
 
-  // Use airedTotal which is computed from last_episode_to_air — strictly aired episodes only
-  // If airedTotal is 0 (edge case), fall back to estimateAiredTotal directly
-  const airedTotal = cache.airedTotal || estimateAiredTotal(t);
+  // Always call estimateAiredTotal directly — never rely on cached airedTotal
+  // which may be stale (e.g. when TMDB lags updating last_episode_to_air)
+  const airedTotal = estimateAiredTotal(t);
   if (airedTotal === 0) return false;
 
   return cache.watched < airedTotal;
