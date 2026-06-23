@@ -15,9 +15,9 @@
       --bg3: #1C1C22;
       --bg4: #242430;
       --border: rgba(255,255,255,0.07);
-      --amber: #F5A623;
-      --amber-dim: rgba(245,166,35,0.15);
-      --amber-glow: rgba(245,166,35,0.3);
+      --amber: #2D7DD2;
+      --amber-dim: rgba(45,125,210,0.15);
+      --amber-glow: rgba(45,125,210,0.3);
       --text: #F0EEE8;
       --text-muted: #7A7880;
       --text-mid: #B0ADBA;
@@ -36,9 +36,9 @@
       --bg3: #F0EDE8;
       --bg4: #E8E4DE;
       --border: rgba(0,0,0,0.09);
-      --amber: #D4880A;
-      --amber-dim: rgba(212,136,10,0.12);
-      --amber-glow: rgba(212,136,10,0.28);
+      --amber: #185FA5;
+      --amber-dim: rgba(24,95,165,0.12);
+      --amber-glow: rgba(24,95,165,0.28);
       --text: #1A1814;
       --text-muted: #8A8680;
       --text-mid: #4A4844;
@@ -59,8 +59,8 @@
     body.theme-light .list-show-row { box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     body.theme-light .up-next-card { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     body.theme-light .ep-row-future { opacity: 0.5; }
-    body.theme-light mark.help-search-highlight { background: rgba(212,136,10,0.2); }
-    body.theme-light mark.help-search-highlight-current { background: rgba(212,136,10,0.55); color: #1A1814; }
+    body.theme-light mark.help-search-highlight { background: rgba(24,95,165,0.15); }
+    body.theme-light mark.help-search-highlight-current { background: rgba(24,95,165,0.5); color: #1A1814; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; }
     body {
@@ -498,7 +498,7 @@
       padding: 0.75rem 1rem;
       transition: border-color 0.15s;
     }
-    .discover-row:hover { border-color: rgba(245,166,35,0.3); }
+    .discover-row:hover { border-color: rgba(45,125,210,0.3); }
     .discover-rank {
       font-family: 'DM Serif Display', serif;
       font-size: 1.4rem;
@@ -932,7 +932,7 @@
       display: flex;
       flex-direction: column;
     }
-    .up-next-card:hover { transform: translateY(-3px); border-color: rgba(245,166,35,0.3); }
+    .up-next-card:hover { transform: translateY(-3px); border-color: rgba(45,125,210,0.3); }
     .up-next-backdrop {
       width: 100%;
       height: 100px;
@@ -1066,7 +1066,7 @@
       cursor: pointer;
       transition: border-color 0.15s;
     }
-    .stats-top-show:hover { border-color: rgba(245,166,35,0.3); }
+    .stats-top-show:hover { border-color: rgba(45,125,210,0.3); }
     .stats-rank {
       font-family: 'DM Serif Display', serif;
       font-size: 1.3rem;
@@ -1097,7 +1097,7 @@
     }
     .show-card:hover {
       transform: translateY(-3px);
-      border-color: rgba(245,166,35,0.3);
+      border-color: rgba(45,125,210,0.3);
       box-shadow: 0 12px 40px rgba(0,0,0,0.6);
     }
     .show-card-poster {
@@ -1151,7 +1151,7 @@
     .badge-ended { background: rgba(122,120,128,0.15); color: var(--text-muted); }
     .badge-cancelled { background: rgba(224,82,82,0.15); color: var(--red); }
     .badge-upcoming { background: rgba(91,155,213,0.15); color: var(--blue); }
-    .badge-in-production { background: rgba(245,166,35,0.15); color: var(--amber); }
+    .badge-in-production { background: rgba(45,125,210,0.15); color: var(--amber); }
     .progress-bar-wrap {
       height: 3px;
       background: var(--bg4);
@@ -1182,7 +1182,7 @@
       position: absolute;
       top: 0.5rem;
       left: 0.5rem;
-      background: rgba(245,166,35,0.9);
+      background: rgba(45,125,210,0.9);
       color: #0D0D0F;
       border-radius: 50px;
       padding: 0.15rem 0.45rem;
@@ -1494,7 +1494,7 @@
     .season-pill.active { background: var(--amber-dim); border-color: var(--amber-glow); color: var(--amber); }
     .season-pill.done { background: rgba(76,175,130,0.08); border-color: rgba(76,175,130,0.25); color: var(--text-muted); }
     .season-pill.done.active { background: rgba(76,175,130,0.18); border-color: var(--green); color: var(--green); }
-    .season-pill.partial { border-color: rgba(245,166,35,0.3); }
+    .season-pill.partial { border-color: rgba(45,125,210,0.3); }
     .season-pill-dot {
       display: inline-block;
       width: 5px; height: 5px;
@@ -1687,7 +1687,7 @@
       transition: border-color 0.15s;
       flex-wrap: wrap;
     }
-    .list-show-row:hover { border-color: rgba(245,166,35,0.3); }
+    .list-show-row:hover { border-color: rgba(45,125,210,0.3); }
     .list-row-header {
       display: flex;
       align-items: center;
@@ -1774,7 +1774,7 @@
       cursor: pointer;
       transition: border-color 0.15s;
     }
-    .alert-row:hover { border-color: rgba(245,166,35,0.3); }
+    .alert-row:hover { border-color: rgba(45,125,210,0.3); }
     .alert-row.amber-alert { border-color: var(--amber-glow); }
     .alert-poster { width: 50px; height: 74px; object-fit: cover; border-radius: 5px; background: var(--bg4); flex-shrink: 0; }
     .alert-info { flex: 1; min-width: 0; }
@@ -2425,7 +2425,7 @@
     .help-badge-returning { background: rgba(76,175,130,0.15); color: var(--green); }
     .help-badge-ended { background: rgba(122,120,128,0.15); color: var(--text-muted); }
     .help-badge-cancelled { background: rgba(224,82,82,0.15); color: var(--red); }
-    .help-badge-production { background: rgba(245,166,35,0.15); color: var(--amber); }
+    .help-badge-production { background: rgba(45,125,210,0.15); color: var(--amber); }
     .help-badge-planned { background: rgba(91,155,213,0.15); color: var(--blue); }
     .help-link { color: var(--amber); text-decoration: none; }
     .help-link:hover { text-decoration: underline; }
@@ -2461,7 +2461,7 @@
       margin-bottom: 0.6rem;
     }
     .help-search-highlight {
-      background: rgba(245,166,35,0.25);
+      background: rgba(45,125,210,0.2);
       border-radius: 2px;
       color: var(--amber);
     }
@@ -2479,13 +2479,13 @@
 
     /* Help search highlights */
     mark.help-search-highlight {
-      background: rgba(245,166,35,0.25);
+      background: rgba(45,125,210,0.2);
       color: inherit;
       border-radius: 2px;
       padding: 0 1px;
     }
     mark.help-search-highlight-current {
-      background: rgba(245,166,35,0.7);
+      background: rgba(45,125,210,0.6);
       color: #0D0D0F;
       border-radius: 2px;
       padding: 0 1px;
@@ -2496,7 +2496,7 @@
     .spinner {
       display: inline-block;
       width: 18px; height: 18px;
-      border: 2px solid rgba(245,166,35,0.2);
+      border: 2px solid rgba(45,125,210,0.2);
       border-top-color: var(--amber);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -3321,7 +3321,6 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
         ? await tmdbTVExternalIds(tmdbId)
         : await tmdbMovieExternalIds(tmdbId);
       imdbId = extIds?.imdb_id || null;
-      console.log('[Ratings] IMDb ID from TMDB:', imdbId);
     } catch (e) {
       console.warn('[Ratings] Could not fetch external IDs:', e);
     }
@@ -3331,12 +3330,10 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
     if (imdbId) {
       if (omdbCache[imdbId]) {
         omdb = omdbCache[imdbId];
-        console.log('[Ratings] Using cached OMDb data for', imdbId);
       } else {
         try {
           const res = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_KEY}`);
           const data = await res.json();
-          console.log('[Ratings] OMDb response by IMDb ID:', data);
           if (data.Response === 'True') {
             omdbCache[imdbId] = data;
             omdb = data;
@@ -3358,10 +3355,8 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
         try {
           const type = mediaType === 'tv' ? 'series' : 'movie';
           const url = `https://www.omdbapi.com/?t=${encodeURIComponent(title)}&y=${year||''}&type=${type}&apikey=${OMDB_KEY}`;
-          console.log('[Ratings] OMDb fallback URL:', url);
           const res = await fetch(url);
           const data = await res.json();
-          console.log('[Ratings] OMDb fallback response:', data);
           if (data.Response === 'True') {
             omdbCache[cacheKey] = data;
             omdb = data;
@@ -3383,7 +3378,6 @@ async function openRatingsPanel(tmdbId, mediaType, title, year) {
 function renderRatingsPanel(body, omdb, imdbId, title, year, mediaType) {
   // Parse OMDb ratings from the standard Ratings array (free tier)
   const ratings = omdb?.Ratings || [];
-  console.log('[Ratings] Parsed ratings array:', ratings);
   const rtCritics = ratings.find(r => r.Source === 'Rotten Tomatoes');
   const metacritic = ratings.find(r => r.Source === 'Metacritic');
   // IMDb rating is available both in Ratings array and as top-level imdbRating
@@ -3852,10 +3846,8 @@ async function loadAllShows() {
 
   // Step 4: Fetch missing/stale/incomplete shows from TMDB in batches of 10
   if (needsFetch.length > 0) {
-    console.log(`[Cache] Fetching ${needsFetch.length} shows from TMDB in batches...`);
     toast(`Loading ${needsFetch.length} shows from TMDB…`);
     await batchFetchShows(needsFetch);
-    console.log('[Cache] Batch fetch complete');
   }
 }
 
@@ -4025,14 +4017,12 @@ async function refreshShowProgressCache() {
     if (data.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
   }
-  console.log('[Progress] watchedByShow:', watchedByShow);
   const today = new Date();
   for (const show of trackedShows) {
     if (!show.tmdb) continue;
     const t = show.tmdb;
     const id = Number(t.id);
     const watched = watchedByShow[id] || 0;
-    if (watched > 0) console.log(`[Progress] ${t.name}: watched=${watched}, id=${id}, t.id type=${typeof t.id}`);
 
     // Use number_of_episodes as the reliable display total
     // Fall back to estimateAiredTotal if number_of_episodes is missing from cache
@@ -5943,7 +5933,7 @@ function renderStatsContent(container, s) {
       <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;flex:1;">
         <div style="font-size:0.68rem;color:var(--text-muted);">${w.count || ''}</div>
         <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
-          <div style="width:100%;background:${isThisWeek ? 'var(--amber)' : 'rgba(245,166,35,0.3)'};border-radius:4px 4px 0 0;height:${Math.max(pct, w.count > 0 ? 4 : 0)}%;min-height:${w.count > 0 ? '4px' : '0'};transition:height 0.3s;"></div>
+          <div style="width:100%;background:${isThisWeek ? 'var(--amber)' : 'rgba(45,125,210,0.3)'};border-radius:4px 4px 0 0;height:${Math.max(pct, w.count > 0 ? 4 : 0)}%;min-height:${w.count > 0 ? '4px' : '0'};transition:height 0.3s;"></div>
         </div>
         <div style="font-size:0.62rem;color:var(--text-muted);white-space:nowrap;transform:rotate(-45deg);transform-origin:center;margin-top:0.2rem;">${w.label}</div>
       </div>`;
@@ -5957,7 +5947,7 @@ function renderStatsContent(container, s) {
       <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;flex:1;">
         <div style="font-size:0.68rem;color:var(--text-muted);">${s.dayCounts[i] || ''}</div>
         <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
-          <div style="width:100%;background:${isMax ? 'var(--amber)' : 'rgba(245,166,35,0.3)'};border-radius:4px 4px 0 0;height:${Math.max(pct, s.dayCounts[i] > 0 ? 6 : 0)}%;min-height:${s.dayCounts[i] > 0 ? '4px' : '0'};"></div>
+          <div style="width:100%;background:${isMax ? 'var(--amber)' : 'rgba(45,125,210,0.3)'};border-radius:4px 4px 0 0;height:${Math.max(pct, s.dayCounts[i] > 0 ? 6 : 0)}%;min-height:${s.dayCounts[i] > 0 ? '4px' : '0'};"></div>
         </div>
         <div style="font-size:0.72rem;color:${isMax ? 'var(--amber)' : 'var(--text-muted)'};">${d}</div>
       </div>`;
