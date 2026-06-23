@@ -4060,10 +4060,30 @@ function estimateAiredTotal(tmdb) {
     s.season_number > 0 && s.season_number < lastSeasonNum
   );
   const priorTotal = seasons.reduce((sum, s) => sum + (s.episode_count || 0), 0);
+  let total = priorTotal + lastEpNum;
 
-  // Add episodes aired so far in the current season (from last_episode_to_air)
-  // This is always accurate regardless of what episode_count says in seasons array
-  return priorTotal + lastEpNum;
+  // If next_episode_to_air has already aired today (TMDB sometimes lags
+  // updating last_episode_to_air on the day an episode drops), count it too
+  const nextEp = tmdb.next_episode_to_air;
+  if (nextEp?.air_date) {
+    const nextAirDate = new Date(nextEp.air_date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (nextAirDate <= today) {
+      // next episode has aired — add the gap between last and next episode numbers
+      // handling potential season boundary
+      if (nextEp.season_number === lastSeasonNum) {
+        total = priorTotal + nextEp.episode_number;
+      } else {
+        // New season started — add remaining episodes from last season + episodes in new season
+        const lastSeasonData = (tmdb.seasons || []).find(s => s.season_number === lastSeasonNum);
+        const lastSeasonTotal = lastSeasonData?.episode_count || lastEpNum;
+        total = priorTotal + lastSeasonTotal + nextEp.episode_number;
+      }
+    }
+  }
+
+  return total;
 }
 
 // ─── UP NEXT WIDGET ─────────────────────────────────────────────────────────
@@ -4673,7 +4693,8 @@ function isUpcomingOnly(show) {
   if (hasUnwatchedAiredEpisodes(show)) return false;
   const nextAir = show.tmdb?.next_episode_to_air?.air_date;
   if (!nextAir) return false;
-  return new Date(nextAir + 'T00:00:00') > new Date();
+  // Include today's episodes — >= not > so "airing today" counts as upcoming
+  return new Date(nextAir + 'T00:00:00') >= new Date(new Date().toDateString());
 }
 
 function isInProduction(show) {
