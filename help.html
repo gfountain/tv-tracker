@@ -22,7 +22,7 @@
       <a class="help-toc-link" href="#whats-new">✨ What's New</a>
       <a class="help-toc-link" href="#getting-started">Getting Started</a>
       <a class="help-toc-link" href="#navigation">Navigation</a>
-      <a class="help-toc-link" href="#my-shows">My Shows</a>
+      <a class="help-toc-link" href="#my-shows">My Shows & Filter Flow</a>
       <a class="help-toc-link" href="#status-badges">Status Badges</a>
       <a class="help-toc-link" href="#episode-tracking">Episode Tracking</a>
       <a class="help-toc-link" href="#up-next">Up Next Widget</a>
@@ -58,7 +58,7 @@
           <li><strong>🗓 On This Day widget</strong> — appears at the top of the Feed tab. Shows activity from previous years on today's date grouped by year. "1 year ago you completed Breaking Bad."</li>
           <li><strong>📅 Coming Up widget</strong> — also in the Feed tab. Shows all tracked shows with a next episode airing within 30 days, sorted soonest first with a countdown.</li>
           <li><strong>show_cache table</strong> — TMDB metadata cached in Supabase for instant list loading. 160 shows load in one fast query instead of 160 TMDB requests. Cache refreshes daily via the digest job.</li>
-          <li><strong>Daily email digest</strong> — one email per day at 6 AM Eastern. White design, smart summary, Airing Today section, Show Updates grouped by type. Quiet-day message when nothing changed.</li>
+          <li><strong>Daily email digest</strong> — one email per day at 6 AM Eastern (EDT). White design, smart summary, Airing Today section, Show Updates grouped by type. Quiet-day message when nothing changed. Note: arrives at 5 AM during Eastern Standard Time (November–March).</li>
           <li><strong>Timezone setting</strong> — in ⚙️ Settings. Eastern, Central, Mountain, Pacific. Saved to Supabase, syncs across devices. Used throughout the app and in digest emails.</li>
         </ul>
       </section>
@@ -126,14 +126,48 @@
         <table class="help-table">
           <tr><th>Filter</th><th>Logic</th><th>Badge color</th></tr>
           <tr><td><strong>All</strong></td><td>Every tracked show across all statuses</td><td>—</td></tr>
-          <tr><td><strong>Unwatched</strong></td><td>Shows with at least one aired unwatched episode (strictly date-based)</td><td>Amber</td></tr>
-          <tr><td><strong>Upcoming</strong></td><td>Caught up + confirmed future air date</td><td>Blue</td></tr>
+          <tr><td><strong>Unwatched</strong></td><td>Has at least one aired episode you haven't watched — strictly date-based, future episodes never count</td><td>Blue</td></tr>
+          <tr><td><strong>Upcoming</strong></td><td>Caught up on all aired episodes + a confirmed future air date</td><td>Blue</td></tr>
           <tr><td><strong>Filming</strong></td><td>TMDB status = In Production</td><td>Purple</td></tr>
           <tr><td><strong>Ended</strong></td><td>TMDB status = Ended or Cancelled</td><td>Red</td></tr>
-          <tr><td><strong>Completed</strong></td><td>Shows you've personally finished (auto-moved)</td><td>Green</td></tr>
-          <tr><td><strong>Watchlist</strong></td><td>Shows you intend to watch but haven't started (dashed border)</td><td>—</td></tr>
+          <tr><td><strong>Completed</strong></td><td>Shows you've personally finished (auto-moved when last episode marked)</td><td>Green</td></tr>
+          <tr><td><strong>Watchlist</strong></td><td>Shows you intend to watch but haven't started (dashed border, visually separated)</td><td>—</td></tr>
         </table>
-        <p class="help-p">Filters are not mutually exclusive — a show can appear in both Ended and Unwatched if it's cancelled but you haven't finished it. The default view is <strong>Unwatched</strong>.</p>
+        <p class="help-p">Filters are not mutually exclusive — a show can appear in both Ended and Unwatched if it's cancelled but you haven't finished watching it. The default view is <strong>Unwatched</strong>.</p>
+
+        <h3 class="help-h3">How Shows Move Between Filters</h3>
+        <p class="help-p">Shows move between filters automatically based on two things: your watch progress and TMDB data. You never manually move a show between filters — Marquee handles it.</p>
+
+        <h4 class="help-h4" style="font-size:0.85rem;font-weight:700;color:var(--text);margin:0.75rem 0 0.4rem;">Returning shows (the most common case)</h4>
+        <table class="help-table">
+          <tr><th>Your state</th><th>Where it appears</th></tr>
+          <tr><td>Has aired episodes you haven't watched</td><td><strong>Unwatched</strong></td></tr>
+          <tr><td>Caught up + confirmed future air date</td><td><strong>Upcoming</strong></td></tr>
+          <tr><td>Caught up + no confirmed date yet</td><td><strong>All</strong> only — not in any specific filter</td></tr>
+          <tr><td>New episode drops</td><td>Automatically moves back to <strong>Unwatched</strong></td></tr>
+        </table>
+
+        <h4 class="help-h4" style="font-size:0.85rem;font-weight:700;color:var(--text);margin:0.75rem 0 0.4rem;">Ended / Cancelled shows</h4>
+        <table class="help-table">
+          <tr><th>Your state</th><th>Where it appears</th></tr>
+          <tr><td>Episodes left to watch</td><td><strong>Unwatched</strong> and <strong>Ended</strong></td></tr>
+          <tr><td>All episodes marked watched</td><td>Auto-moves to <strong>Completed</strong> — disappears from Unwatched and Ended</td></tr>
+        </table>
+
+        <h4 class="help-h4" style="font-size:0.85rem;font-weight:700;color:var(--text);margin:0.75rem 0 0.4rem;">In Production / Filming shows</h4>
+        <table class="help-table">
+          <tr><th>Your state</th><th>Where it appears</th></tr>
+          <tr><td>Caught up, no air date yet</td><td><strong>Filming</strong> and <strong>All</strong></td></tr>
+          <tr><td>New season premieres</td><td>Moves to <strong>Upcoming</strong> then <strong>Unwatched</strong> as episodes air</td></tr>
+        </table>
+
+        <h4 class="help-h4" style="font-size:0.85rem;font-weight:700;color:var(--text);margin:0.75rem 0 0.4rem;">Key things to know</h4>
+        <ul class="help-ul">
+          <li><strong>Unwatched is strictly date-based</strong> — only episodes with an air date on or before today count. Future episodes never make a show appear in Unwatched.</li>
+          <li><strong>TMDB sometimes lags</strong> — if an episode aired today but TMDB hasn't updated yet, Marquee uses the next episode's air date to detect it. The show will appear in Unwatched within a few hours.</li>
+          <li><strong>Caught up with no date</strong> — a returning show you're fully caught up on with no announced next air date sits in All only. This is correct — there's nothing to watch and nothing confirmed coming. It will move to Upcoming automatically when a date is announced.</li>
+          <li><strong>Filter changes are instant</strong> — when you mark the last episode of a show watched, it disappears from Unwatched immediately without requiring a refresh.</li>
+        </ul>
 
         <h3 class="help-h3">Inline List Expansion</h3>
         <p class="help-p">Click anywhere on a show row (except the poster or title) to <strong>expand it inline</strong> for season/episode tracking. Click the <strong>poster</strong> or <strong>title</strong> to open the full slide-out detail panel.</p>
@@ -142,7 +176,7 @@
         <p class="help-p">Slide-out showing: backdrop, poster, title, genres, rating (tap → Ratings panel), seasons & episodes, trailer, streaming providers, cast, crew, similar shows, and Plex toggle.</p>
 
         <h3 class="help-h3">Auto-Complete</h3>
-        <p class="help-p">When you mark the last aired episode of an <strong>Ended</strong> or <strong>Cancelled</strong> show, Marquee automatically moves it to Completed, logs it in the Feed with 🎉, and shows a toast. Only fires for definitively finished shows.</p>
+        <p class="help-p">When you mark the last aired episode of an <strong>Ended</strong> or <strong>Cancelled</strong> show, Marquee automatically moves it to Completed, logs it in the Feed with 🎉, and shows a toast. Only fires for definitively finished shows — not Returning or In Production.</p>
 
         <h3 class="help-h3">Removing a Show</h3>
         <p class="help-p">Open the detail panel and click Remove. A toast appears with an <strong>Undo</strong> button — tap it within 5 seconds to restore the show without losing any episode progress.</p>
@@ -445,12 +479,12 @@
       <!-- ═══════════════════════════════════════════════════════ -->
       <section class="help-section" id="email-digest">
         <h2 class="help-h2">📧 Daily Email Digest</h2>
-        <p class="help-p">One email per day at <strong>6 AM Eastern</strong> summarizing everything happening with your tracked shows. Always sent — even on quiet days.</p>
+        <p class="help-p">One email per day at <strong>6 AM Eastern (EDT) / 5 AM Eastern (EST)</strong> summarizing everything happening with your tracked shows. Always sent — even on quiet days.</p>
 
         <h3 class="help-h3">How It Works</h3>
         <ol class="help-ol">
           <li>Every <strong>6 hours</strong> a background job detects changes on your tracked shows and writes alerts to the database. No email at this stage.</li>
-          <li>At <strong>6 AM Eastern daily</strong> a separate job fetches fresh TMDB data, updates the show cache, reads the past 24 hours of alerts, and sends your digest.</li>
+          <li>At <strong>6 AM Eastern daily</strong> (10 AM UTC in summer, 11 AM UTC in winter) a separate job fetches fresh TMDB data, updates the show cache, reads the past 24 hours of alerts, and sends your digest.</li>
         </ol>
 
         <h3 class="help-h3">What the Email Contains</h3>
@@ -484,7 +518,7 @@
 
         <div class="help-faq-item">
           <div class="help-faq-q">How often does show data update?</div>
-          <div class="help-faq-a">On every page load, the app reads from the show cache (Supabase). The cache is refreshed daily at 6 AM Eastern by the digest job. The background alert detection runs every 6 hours separately. So list view data is at most 24 hours stale; alert detection is at most 6 hours behind real-world changes.</div>
+          <div class="help-faq-a">On every page load, the app reads from the show cache (Supabase). The cache is refreshed daily at 6 AM Eastern by the digest job (delivered around 6 AM EDT in summer, 5 AM EST in winter). The background alert detection runs every 6 hours separately. So list view data is at most 24 hours stale; alert detection is at most 6 hours behind real-world changes.</div>
         </div>
 
         <div class="help-faq-item">
@@ -513,7 +547,14 @@
         </div>
 
         <div class="help-faq-item">
-          <div class="help-faq-q">I'm not receiving my daily digest email.</div>
+          <div class="help-faq-q">Why did my digest email arrive at 7 AM instead of 6 AM?</div>
+          <div class="help-faq-a">The digest cron job runs at 10 AM UTC. During Eastern Daylight Time (EDT, March–November) that's 6 AM. During Eastern Standard Time (EST, November–March) that's 5 AM — one hour earlier. If you received it at 7 AM, the cron job may have been set to 11 AM UTC (the old schedule). Check Supabase → Database → pg_cron and confirm the marquee-digest job runs at <code>0 10 * * *</code>.</div>
+        </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">Why is a show I'm caught up on not appearing in Upcoming?</div>
+          <div class="help-faq-a">Upcoming only shows shows with a <em>confirmed</em> future air date set in TMDB. If a show is renewed but no premiere date has been announced yet, it sits in All only — this is correct, there's nothing confirmed to show yet. It will move to Upcoming automatically once TMDB has a date.</div>
+        </div>
           <div class="help-faq-a">Check your spam folder first. If not there, verify the Edge Function is deployed in Supabase and the daily cron job (marquee-digest) is active. You can test manually in Supabase → Edge Functions → notify-users → Invoke with body <code>{"mode":"digest"}</code>.</div>
         </div>
 
