@@ -555,6 +555,9 @@
           <div class="help-faq-q">Why is a show I'm caught up on not appearing in Upcoming?</div>
           <div class="help-faq-a">Upcoming only shows shows with a <em>confirmed</em> future air date set in TMDB. If a show is renewed but no premiere date has been announced yet, it sits in All only — this is correct, there's nothing confirmed to show yet. It will move to Upcoming automatically once TMDB has a date.</div>
         </div>
+
+        <div class="help-faq-item">
+          <div class="help-faq-q">I'm not receiving my daily digest email.</div>
           <div class="help-faq-a">Check your spam folder first. If not there, verify the Edge Function is deployed in Supabase and the daily cron job (marquee-digest) is active. You can test manually in Supabase → Edge Functions → notify-users → Invoke with body <code>{"mode":"digest"}</code>.</div>
         </div>
 
