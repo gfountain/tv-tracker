@@ -4661,14 +4661,10 @@ function hasUnwatchedAiredEpisodes(show) {
   const cache = showProgressCache[Number(t.id)];
   if (!cache) return false;
 
-  // Use airedTotal from cache if it's reliable (greater than watched)
-  // Otherwise fall back to number_of_episodes as the total
-  // number_of_episodes includes future episodes for actively airing shows,
-  // but last_episode_to_air confirms something has aired, so if watched < total
-  // and something has aired, there must be unwatched aired content
-  const airedTotal = (cache.airedTotal > cache.watched)
-    ? cache.airedTotal
-    : (t.number_of_episodes || cache.airedTotal);
+  // Use airedTotal which is computed from last_episode_to_air — strictly aired episodes only
+  // If airedTotal is 0 (edge case), fall back to estimateAiredTotal directly
+  const airedTotal = cache.airedTotal || estimateAiredTotal(t);
+  if (airedTotal === 0) return false;
 
   return cache.watched < airedTotal;
 }
