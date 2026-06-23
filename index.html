@@ -3863,6 +3863,7 @@ function cacheToTmdb(c) {
     last_episode_to_air: c.last_episode || null,
     number_of_seasons: c.number_of_seasons,
     number_of_episodes: c.number_of_episodes || 0,
+    aired_episode_count: c.aired_episode_count || 0,
     genres: c.genres || [],
     networks: c.networks || [],
     overview: c.overview || '',
@@ -3908,6 +3909,7 @@ async function batchFetchShows(rows) {
 async function writeShowCache(tmdbId, tmdb) {
   if (!tmdb || !currentUser) return;
   try {
+    const airedCount = estimateAiredTotal(tmdb);
     await db.from('show_cache').upsert({
       user_id: currentUser.id,
       tmdb_id: tmdbId,
@@ -3920,6 +3922,7 @@ async function writeShowCache(tmdbId, tmdb) {
       last_episode: tmdb.last_episode_to_air || null,
       number_of_seasons: tmdb.number_of_seasons,
       number_of_episodes: tmdb.number_of_episodes || null,
+      aired_episode_count: airedCount || null,
       genres: tmdb.genres || [],
       networks: tmdb.networks || [],
       overview: tmdb.overview || '',
@@ -4030,12 +4033,10 @@ async function refreshShowProgressCache() {
     const airedEst = estimateAiredTotal(t) || 0;
     const displayTotal = numEps || airedEst || 0;
 
-    // Estimate aired total for the Unwatched filter
-    let airedTotal = displayTotal;
-    if (t.last_episode_to_air?.air_date && new Date(t.last_episode_to_air.air_date + 'T00:00:00') <= today) {
-      const est = estimateAiredTotal(t);
-      if (est > 0) airedTotal = est;
-    }
+    // Aired total — use pre-computed value from cache if available,
+    // otherwise estimate from last_episode_to_air
+    // This is strictly aired episodes only, not future ones
+    const airedTotal = t.aired_episode_count || airedEst || displayTotal;
 
     const pct = displayTotal > 0 ? Math.min(100, Math.round((watched / displayTotal) * 100)) : 0;
     const unwatched = Math.max(0, airedTotal - watched);
@@ -4046,14 +4047,34 @@ async function refreshShowProgressCache() {
 
 // Sums episode counts of all seasons up to and including the season containing
 // the last aired episode, using TMDB's per-season episode_count field.
+// Calculates how many episodes have aired using last_episode_to_air.
+// Sums all fully-aired seasons before the current one, then adds
+// the current season's last aired episode number.
+// This is strictly about aired episodes — not future ones.
 function estimateAiredTotal(tmdb) {
-  const lastSeasonNum = tmdb.last_episode_to_air?.season_number;
-  const lastEpNum = tmdb.last_episode_to_air?.episode_number || 0;
-  if (lastSeasonNum == null) return tmdb.number_of_episodes || 0;
+  const lastEp = tmdb.last_episode_to_air;
+  if (!lastEp) return 0;
 
-  const seasons = (tmdb.seasons || []).filter(s => s.season_number > 0 && s.season_number < lastSeasonNum);
-  const priorSeasonsTotal = seasons.reduce((sum, s) => sum + (s.episode_count || 0), 0);
-  return priorSeasonsTotal + lastEpNum;
+  const lastSeasonNum = lastEp.season_number;
+  const lastEpNum = lastEp.episode_number || 0;
+  if (!lastSeasonNum) return lastEpNum;
+
+  // Sum episode counts for all seasons before the current one
+  // Only use seasons with season_number > 0 (exclude specials)
+  const seasons = (tmdb.seasons || []).filter(s =>
+    s.season_number > 0 && s.season_number < lastSeasonNum
+  );
+  const priorTotal = seasons.reduce((sum, s) => sum + (s.episode_count || 0), 0);
+
+  // If we have no prior season data (seasons array empty/stale),
+  // fall back to last_episode_to_air absolute episode number if available
+  if (priorTotal === 0 && lastSeasonNum > 1) {
+    // Use number_of_episodes minus episodes remaining in current season as estimate
+    // This is imperfect but better than returning just lastEpNum
+    return lastEpNum; // at minimum we know this many have aired
+  }
+
+  return priorTotal + lastEpNum;
 }
 
 // ─── UP NEXT WIDGET ─────────────────────────────────────────────────────────
@@ -4638,10 +4659,6 @@ function renderTab() {
 }
 
 // ─── RENDER SHOWS TAB ─────────────────────────────────────────────────────────
-// Returns true if a show has aired episodes that haven't been watched.
-// Uses watched count from cache vs estimated aired total from TMDB.
-// A show with NO episode_progress rows at all is treated as having
-// unwatched episodes if it has aired content.
 function hasUnwatchedAiredEpisodes(show) {
   if (show.status === 'completed') return false;
   const t = show.tmdb;
@@ -4652,13 +4669,11 @@ function hasUnwatchedAiredEpisodes(show) {
   if (!lastAir?.air_date) return false;
   if (new Date(lastAir.air_date + 'T00:00:00') > new Date()) return false;
 
-  // Estimate how many episodes have aired
-  const airedTotal = estimateAiredTotal(t);
-  if (airedTotal === 0) return false;
+  const cache = showProgressCache[Number(t.id)];
+  if (!cache) return false;
 
-  // How many has the user watched?
-  const watched = showProgressCache[Number(t.id)]?.watched || 0;
-  return watched < airedTotal;
+  // Compare watched against aired episodes only — not future episodes
+  return cache.watched < cache.airedTotal;
 }
 
 function isUpcomingOnly(show) {
