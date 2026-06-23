@@ -6687,6 +6687,14 @@ async function toggleEpisode(showId, seasonNum, epNum) {
   // Update the list row progress bar in-place without collapsing expanded rows
   updateListRowProgress(showId);
 
+  // If show no longer belongs in current filter, do a full re-render
+  // (e.g. marked all episodes watched — show should leave Unwatched filter)
+  const updatedShow = trackedShows.find(s => s.tmdb_id === showId);
+  if (updatedShow && watchingSubView === 'unwatched' && !hasUnwatchedAiredEpisodes(updatedShow)) {
+    renderTab();
+    return;
+  }
+
   refreshUpNextCache().then(() => {
     if (currentTab === 'myshows' && (currentView !== 'list' || expandedListRows.size === 0)) {
       renderTab();
@@ -6727,6 +6735,13 @@ async function markSeason(showId, seasonNum, watched) {
 
   // Update the list row progress bar in-place without collapsing expanded rows
   updateListRowProgress(showId);
+
+  // If show no longer belongs in current filter, do a full re-render
+  const updatedShow = trackedShows.find(s => s.tmdb_id === showId);
+  if (updatedShow && watchingSubView === 'unwatched' && !hasUnwatchedAiredEpisodes(updatedShow)) {
+    renderTab();
+    return;
+  }
 
   refreshUpNextCache().then(() => {
     if (currentTab === 'myshows' && (currentView !== 'list' || expandedListRows.size === 0)) {
