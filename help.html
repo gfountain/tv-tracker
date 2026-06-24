@@ -36,6 +36,8 @@
       <a class="help-toc-link" href="#stats">Stats</a>
       <a class="help-toc-link" href="#settings">Settings</a>
       <a class="help-toc-link" href="#theme">Light & Dark Theme</a>
+      <a class="help-toc-link" href="#color-themes">Color Themes</a>
+      <a class="help-toc-link" href="#tour">App Tour</a>
       <a class="help-toc-link" href="#email-digest">Daily Email Digest</a>
       <a class="help-toc-link" href="#faq">FAQ</a>
       <a class="help-toc-link" href="#release-history">Release History</a>
@@ -48,6 +50,8 @@
         <h2 class="help-h2">✨ What's New</h2>
         <p class="help-p">The most recent additions to Marquee. See <a class="help-link" href="#release-history">Release History</a> for the full changelog.</p>
         <ul class="help-ul">
+          <li><strong>🎨 Color palette themes</strong> — six accent color options in ⚙️ Settings: Ocean (default blue), Midnight (violet), Ember (original amber), Emerald (green), Rose (red), and Gold. Saved to Supabase, syncs across devices. Works with both light and dark modes.</li>
+          <li><strong>🗺 App Tour</strong> — a 12-step guided tour launched from ⚙️ Settings. Covers every major feature with keyboard navigation (arrow keys, Enter, Escape).</li>
           <li><strong>Light / Dark / Auto theme</strong> — a 🌓 button in the topbar cycles between Auto (time-based), ☀️ Light, and 🌙 Dark. Auto switches at 7 AM and 8 PM. Preference saved to localStorage.</li>
           <li><strong>My Shows consolidation</strong> — Watching, Watchlist, and Completed tabs merged into a single <strong>My Shows</strong> tab with seven filter chips: All, Unwatched, Upcoming, Filming, Ended, Completed, and Watchlist (visually separated).</li>
           <li><strong>🔔 Notification panel</strong> — the bell moved before the search bar in topbar row 1. Tapping it opens a dropdown notification panel (desktop) or full-width slide-down (mobile). Never leaves the current page. Replaces the dedicated Alerts tab entirely.</li>
@@ -443,14 +447,78 @@
         <h3 class="help-h3">Opening Settings</h3>
         <p class="help-p"><strong>Desktop:</strong> Click ⚙️ in the topbar. <strong>Mobile:</strong> Open the drawer → Settings at the bottom.</p>
 
+        <h3 class="help-h3">Color Theme</h3>
+        <p class="help-p">Six accent color palettes to choose from — tap any swatch to apply instantly. Saved to Supabase and syncs across all your devices. See <a class="help-link" href="#color-themes">Color Themes</a> for details.</p>
+
         <h3 class="help-h3">Timezone</h3>
         <p class="help-p">Choose Eastern, Central, Mountain, or Pacific. Saved to Supabase and syncs across all devices. Affects all date displays in the app and in digest emails.</p>
+
+        <h3 class="help-h3">App Tour</h3>
+        <p class="help-p">Click <strong>▶ Take the Tour</strong> to launch the guided tour of Marquee's main features. 12 steps, keyboard navigable, can be re-launched any time.</p>
 
         <h3 class="help-h3">Changing Your Password</h3>
         <p class="help-p">Enter a new password (min 6 characters), confirm it, click Update Password. Works while signed in — useful if you signed in via magic link and want to set a password.</p>
 
         <h3 class="help-h3">Signing Out</h3>
         <p class="help-p"><strong>Desktop:</strong> Click 🚪 in the topbar. <strong>Mobile:</strong> Open the drawer → Sign Out at the bottom.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="color-themes">
+        <h2 class="help-h2">🎨 Color Themes</h2>
+        <p class="help-p">Marquee supports six accent color palettes. Each one changes the highlight color used throughout the app — active tabs, progress bars, filter chips, badges, and more. Choose yours in ⚙️ Settings.</p>
+
+        <table class="help-table">
+          <tr><th>Theme</th><th>Color</th><th>Feel</th></tr>
+          <tr><td>🌊 <strong>Ocean</strong></td><td>Blue #2D7DD2</td><td>Clean, modern — the default</td></tr>
+          <tr><td>🌙 <strong>Midnight</strong></td><td>Violet #7C3AED</td><td>Cinematic, premium</td></tr>
+          <tr><td>🔥 <strong>Ember</strong></td><td>Amber #F5A623</td><td>Warm, original Marquee color</td></tr>
+          <tr><td>🌿 <strong>Emerald</strong></td><td>Green #10B981</td><td>Fresh, distinctive</td></tr>
+          <tr><td>🌹 <strong>Rose</strong></td><td>Red #E11D48</td><td>Bold, dramatic</td></tr>
+          <tr><td>✨ <strong>Gold</strong></td><td>Warm gold #C9A227</td><td>Luxe, film award feel</td></tr>
+        </table>
+
+        <h3 class="help-h3">How it works</h3>
+        <p class="help-p">Each palette only changes the accent color — backgrounds, text, and layout stay the same. Both the dark and light variants of each palette are defined, so your color choice works correctly in all three theme modes (Auto, Light, Dark).</p>
+
+        <h3 class="help-h3">Syncing across devices</h3>
+        <p class="help-p">Your palette choice is saved to Supabase and applied from localStorage immediately on every page load so there's no flash. Unlike the light/dark mode preference (which is per-device intentionally), the color palette syncs across all devices you're signed into.</p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="help-section" id="tour">
+        <h2 class="help-h2">🗺 App Tour</h2>
+        <p class="help-p">Marquee includes a built-in guided tour that walks you through all the main features. It's a great way to get oriented when you first start using the app, or to rediscover features you may have missed.</p>
+
+        <h3 class="help-h3">Launching the Tour</h3>
+        <p class="help-p">Open ⚙️ Settings and click <strong>▶ Take the Tour</strong>. The tour can be launched as many times as you like — there's no limit.</p>
+
+        <h3 class="help-h3">Navigation</h3>
+        <ul class="help-ul">
+          <li><strong>Next ›</strong> / <strong>‹ Back</strong> buttons to move between steps</li>
+          <li><strong>Arrow keys</strong> — ← and → to navigate, keyboard-friendly</li>
+          <li><strong>Enter</strong> — advance to next step</li>
+          <li><strong>Escape</strong> — exit the tour at any time</li>
+          <li><strong>Click outside</strong> the card — exits the tour</li>
+          <li><strong>✕ Exit tour</strong> or <strong>Skip</strong> — exit immediately</li>
+          <li><strong>Finish ✓</strong> — appears on the last step instead of Next</li>
+        </ul>
+
+        <h3 class="help-h3">What the Tour Covers</h3>
+        <ol class="help-ol">
+          <li>Welcome to Marquee</li>
+          <li>TV & Movies mode toggle</li>
+          <li>Notifications bell</li>
+          <li>Search</li>
+          <li>My Shows & filter chips</li>
+          <li>How filters work — the show lifecycle</li>
+          <li>Up Next widget</li>
+          <li>Episode tracking</li>
+          <li>Activity Feed</li>
+          <li>Calendar</li>
+          <li>Discover</li>
+          <li>Settings & themes</li>
+        </ol>
       </section>
 
       <!-- ═══════════════════════════════════════════════════════ -->
