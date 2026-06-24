@@ -53,6 +53,12 @@ Episodes watched, hours, days, average rating, binge streaks, watching pace char
 ### ⭐ Ratings Panel
 Tap the TMDB rating in any detail panel to open a slide-out showing Rotten Tomatoes, Metacritic, IMDb, and TMDB scores with direct links.
 
+### 🎨 Color Palette Themes
+Six accent color palettes selectable in ⚙️ Settings: Ocean (default blue), Midnight (violet), Ember (original amber), Emerald (green), Rose (red), and Gold. Each swaps the accent color throughout the entire app — progress bars, filter chips, active tabs, badges. Saved to Supabase and syncs across devices. Works with all three light/dark modes.
+
+### 🗺 App Tour
+A 12-step guided tour launched from ⚙️ Settings. Covers every major feature — My Shows, filters, episode tracking, Up Next, Feed, Calendar, Discover, notifications, and themes. Keyboard navigable (arrow keys, Enter, Escape). Re-launchable any time.
+
 ### 🌓 Light / Dark / Auto Theme
 Cycles between Auto (7 AM–8 PM light, 8 PM–7 AM dark), ☀️ Light, and 🌙 Dark. Saved to localStorage per device. No flash on load.
 
@@ -224,7 +230,7 @@ Zero alerts on first run is expected — it seeds baseline snapshots. Test diges
 | `show_snapshots` | TMDB state snapshots for change detection |
 | `activity_log` | Chronological feed of all user actions |
 | `tracked_movies` | Movies per user with status + Plex flag |
-| `user_preferences` | Timezone per user |
+| `user_preferences` | Timezone and color theme preference per user |
 | `show_cache` | TMDB metadata cache for instant list loading |
 
 All tables have Row Level Security enforced — users can only access their own rows.
