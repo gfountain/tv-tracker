@@ -421,7 +421,146 @@
       }
     }
 
-    /* DISCOVER DROPDOWN */
+    /* ── COLOR PALETTES ── */
+    /* Ocean (default) — already set via --amber variables */
+
+    body.palette-midnight {
+      --amber: #7C3AED;
+      --amber-dim: rgba(124,58,237,0.15);
+      --amber-glow: rgba(124,58,237,0.3);
+    }
+    body.palette-midnight.theme-light {
+      --amber: #6D28D9;
+      --amber-dim: rgba(109,40,217,0.12);
+      --amber-glow: rgba(109,40,217,0.28);
+    }
+    body.palette-ember {
+      --amber: #F5A623;
+      --amber-dim: rgba(245,166,35,0.15);
+      --amber-glow: rgba(245,166,35,0.3);
+    }
+    body.palette-ember.theme-light {
+      --amber: #D4880A;
+      --amber-dim: rgba(212,136,10,0.12);
+      --amber-glow: rgba(212,136,10,0.28);
+    }
+    body.palette-emerald {
+      --amber: #10B981;
+      --amber-dim: rgba(16,185,129,0.15);
+      --amber-glow: rgba(16,185,129,0.3);
+    }
+    body.palette-emerald.theme-light {
+      --amber: #059669;
+      --amber-dim: rgba(5,150,105,0.12);
+      --amber-glow: rgba(5,150,105,0.28);
+    }
+    body.palette-rose {
+      --amber: #E11D48;
+      --amber-dim: rgba(225,29,72,0.15);
+      --amber-glow: rgba(225,29,72,0.3);
+    }
+    body.palette-rose.theme-light {
+      --amber: #BE123C;
+      --amber-dim: rgba(190,18,60,0.12);
+      --amber-glow: rgba(190,18,60,0.28);
+    }
+    body.palette-gold {
+      --amber: #C9A227;
+      --amber-dim: rgba(201,162,39,0.15);
+      --amber-glow: rgba(201,162,39,0.3);
+    }
+    body.palette-gold.theme-light {
+      --amber: #A07D10;
+      --amber-dim: rgba(160,125,16,0.12);
+      --amber-glow: rgba(160,125,16,0.28);
+    }
+
+    /* TOUR OVERLAY */
+    .tour-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .tour-overlay.open { display: flex; }
+    .tour-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: toastIn 0.2s ease;
+    }
+    .tour-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem 0;
+    }
+    .tour-step-count { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+    .tour-card-body { padding: 1.25rem; text-align: center; }
+    .tour-icon { font-size: 2.75rem; margin-bottom: 0.75rem; display: block; }
+    .tour-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text); margin-bottom: 0.6rem; }
+    .tour-body { font-size: 0.875rem; color: var(--text-muted); line-height: 1.65; }
+    .tour-dots { display: flex; justify-content: center; gap: 6px; margin: 1.1rem 0 0; }
+    .tour-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bg4); transition: background 0.2s; }
+    .tour-dot.active { background: var(--amber); }
+    .tour-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid var(--border);
+      gap: 0.75rem;
+    }
+    .tour-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.5rem 1.1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tour-btn:hover { border-color: var(--amber); color: var(--text); }
+    .tour-btn-primary { background: var(--amber); border-color: var(--amber); color: #fff; }
+    .tour-btn-primary:hover { opacity: 0.9; color: #fff; }
+    .tour-exit { font-size: 0.78rem; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: inherit; padding: 0; }
+    .tour-exit:hover { color: var(--text); }
+
+    /* PALETTE SWATCH */
+    .palette-swatches { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+    .palette-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: var(--radius);
+      border: 2px solid transparent;
+      transition: all 0.15s;
+      flex: 1;
+      min-width: 60px;
+    }
+    .palette-swatch:hover { border-color: var(--border); background: var(--bg3); }
+    .palette-swatch.active { border-color: var(--amber); background: var(--amber-dim); }
+    .palette-swatch-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .palette-swatch-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; text-align: center; }
     .discover-btn {
       background: none;
       border: 1px solid var(--border);
@@ -2904,9 +3043,41 @@
 <div class="detail-overlay" id="settings-overlay" onclick="closeSettingsModal(event)">
   <div class="settings-modal" id="settings-modal">
     <button class="detail-close" style="position:absolute;top:1rem;right:1rem;" onclick="hideSettings()">✕</button>
-    <div style="padding:1.75rem;">
+    <div style="padding:1.75rem;overflow-y:auto;max-height:90vh;">
       <div class="detail-title" style="margin-bottom:0.25rem;">⚙️ Settings</div>
       <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.5rem;" id="settings-email-line"></div>
+
+      <!-- COLOR THEME -->
+      <div class="seasons-label" style="margin-bottom:0.5rem;">🎨 Color Theme</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">Choose your accent color. Saved to your account and syncs across devices.</div>
+      <div class="palette-swatches" id="palette-swatches">
+        <div class="palette-swatch" onclick="savePalette('ocean')" data-palette="ocean">
+          <div class="palette-swatch-dot" style="background:#2D7DD2;"></div>
+          <div class="palette-swatch-label">Ocean</div>
+        </div>
+        <div class="palette-swatch" onclick="savePalette('midnight')" data-palette="midnight">
+          <div class="palette-swatch-dot" style="background:#7C3AED;"></div>
+          <div class="palette-swatch-label">Midnight</div>
+        </div>
+        <div class="palette-swatch" onclick="savePalette('ember')" data-palette="ember">
+          <div class="palette-swatch-dot" style="background:#F5A623;"></div>
+          <div class="palette-swatch-label">Ember</div>
+        </div>
+        <div class="palette-swatch" onclick="savePalette('emerald')" data-palette="emerald">
+          <div class="palette-swatch-dot" style="background:#10B981;"></div>
+          <div class="palette-swatch-label">Emerald</div>
+        </div>
+        <div class="palette-swatch" onclick="savePalette('rose')" data-palette="rose">
+          <div class="palette-swatch-dot" style="background:#E11D48;"></div>
+          <div class="palette-swatch-label">Rose</div>
+        </div>
+        <div class="palette-swatch" onclick="savePalette('gold')" data-palette="gold">
+          <div class="palette-swatch-dot" style="background:#C9A227;"></div>
+          <div class="palette-swatch-label">Gold</div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0;"></div>
 
       <!-- TIMEZONE -->
       <div class="seasons-label" style="margin-bottom:0.75rem;">🕐 Timezone</div>
@@ -2920,6 +3091,13 @@
 
       <div style="border-top:1px solid var(--border);margin:1.25rem 0;"></div>
 
+      <!-- TOUR -->
+      <div class="seasons-label" style="margin-bottom:0.75rem;">🗺 App Tour</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">New to Marquee? Take a quick tour of the main features.</div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:0;" onclick="hideSettings();startTour()">▶ Take the Tour</button>
+
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0;"></div>
+
       <!-- PASSWORD -->
       <div class="seasons-label" style="margin-bottom:0.75rem;">🔑 Set / Change Password</div>
       <div class="setup-label">New Password</div>
@@ -2929,10 +3107,30 @@
       <button class="btn btn-primary" onclick="handleSetPassword()" id="settings-password-btn">Update Password</button>
       <div id="settings-error" style="color:var(--red);font-size:0.82rem;margin-top:0.75rem;display:none;"></div>
       <div id="settings-success" style="color:var(--green);font-size:0.82rem;margin-top:0.75rem;display:none;"></div>
-
       <div style="font-size:0.78rem;color:var(--text-muted);margin-top:1rem;">
-        This sets a password for your account directly — useful if you signed in via magic link and want a password for next time, or if email delivery for password-reset links isn't working.
+        This sets a password for your account directly — useful if you signed in via magic link and want a password for next time.
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOUR OVERLAY -->
+<div class="tour-overlay" id="tour-overlay" onclick="handleTourOverlayClick(event)">
+  <div class="tour-card" id="tour-card">
+    <div class="tour-card-header">
+      <button class="tour-exit" onclick="endTour()">✕ Exit tour</button>
+      <span class="tour-step-count" id="tour-step-count"></span>
+    </div>
+    <div class="tour-card-body">
+      <span class="tour-icon" id="tour-icon"></span>
+      <div class="tour-title" id="tour-title"></div>
+      <div class="tour-body" id="tour-body"></div>
+      <div class="tour-dots" id="tour-dots"></div>
+    </div>
+    <div class="tour-card-footer">
+      <button class="tour-btn" id="tour-back-btn" onclick="advanceTour(-1)">‹ Back</button>
+      <button class="tour-exit" onclick="endTour()">Skip</button>
+      <button class="tour-btn tour-btn-primary" id="tour-next-btn" onclick="advanceTour(1)">Next ›</button>
     </div>
   </div>
 </div>
@@ -2989,6 +3187,9 @@ let themeMode = 'auto'; // 'auto' | 'light' | 'dark' — persisted in localStora
   const h = new Date().getHours();
   const isLight = saved === 'light' || (saved === 'auto' && h >= 7 && h < 20);
   if (isLight) document.body.classList.add('theme-light');
+  // Apply palette immediately too
+  const palette = localStorage.getItem('marquee-palette') || 'ocean';
+  if (palette !== 'ocean') document.body.classList.add(`palette-${palette}`);
 })();
 let authMode = 'signin';
 let appMode = 'tv';           // 'tv' | 'movies'
@@ -3086,6 +3287,15 @@ async function onAuthSuccess(user) {
 }
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
+const PALETTES = {
+  ocean:    { label: 'Ocean',    dark: '#2D7DD2', light: '#185FA5' },
+  midnight: { label: 'Midnight', dark: '#7C3AED', light: '#6D28D9' },
+  ember:    { label: 'Ember',    dark: '#F5A623', light: '#D4880A' },
+  emerald:  { label: 'Emerald',  dark: '#10B981', light: '#059669' },
+  rose:     { label: 'Rose',     dark: '#E11D48', light: '#BE123C' },
+  gold:     { label: 'Gold',     dark: '#C9A227', light: '#A07D10' },
+};
+let currentPalette = 'ocean';
 const THEME_ICONS = { auto: '🌓', light: '☀️', dark: '🌙' };
 const THEME_LABELS = { auto: 'Auto (time-based)', light: 'Light', dark: 'Dark' };
 const THEME_CYCLE = { auto: 'light', light: 'dark', dark: 'auto' };
@@ -3096,8 +3306,32 @@ function isLightTime() {
   return h >= LIGHT_HOURS.start && h < LIGHT_HOURS.end;
 }
 
+function applyPalette(palette) {
+  currentPalette = palette || 'ocean';
+  // Remove all palette classes
+  Object.keys(PALETTES).forEach(p => document.body.classList.remove(`palette-${p}`));
+  // Ocean is the default (no class needed) — others get a class
+  if (currentPalette !== 'ocean') {
+    document.body.classList.add(`palette-${currentPalette}`);
+  }
+  // Update swatch active state in settings
+  document.querySelectorAll('.palette-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.palette === currentPalette);
+  });
+}
+
+async function savePalette(palette) {
+  applyPalette(palette);
+  localStorage.setItem('marquee-palette', palette);
+  if (currentUser) {
+    await db.from('user_preferences')
+      .upsert({ user_id: currentUser.id, theme: palette, updated_at: new Date().toISOString() },
+               { onConflict: 'user_id' });
+  }
+  toast(`Theme: ${PALETTES[palette]?.label || palette}`);
+}
+
 function applyTheme(mode) {
-  const useLightTheme = mode === 'light' || (mode === 'auto' && isLightTime());
   document.body.classList.toggle('theme-light', useLightTheme);
   // Update topbar button
   const btn = document.getElementById('theme-toggle-btn');
@@ -3122,6 +3356,9 @@ function cycleTheme() {
 function initTheme() {
   themeMode = localStorage.getItem('marquee-theme') || 'auto';
   applyTheme(themeMode);
+  // Apply palette from localStorage immediately (Supabase value loads later)
+  const savedPalette = localStorage.getItem('marquee-palette') || 'ocean';
+  applyPalette(savedPalette);
   // Re-check auto theme every 10 minutes in case time crosses boundary
   setInterval(() => {
     if (themeMode === 'auto') applyTheme('auto');
@@ -6833,6 +7070,71 @@ function closeDetail(e) {
   if (e.target === document.getElementById('detail-overlay')) closeDetailPanel();
 }
 
+// ─── TOUR ─────────────────────────────────────────────────────────────────────
+const TOUR_STEPS = [
+  { icon: '🎬', title: 'Welcome to Marquee', body: 'Marquee is your personal TV show and movie tracker. It keeps track of what you\'re watching, what\'s coming up, and notifies you when things change on your favorite shows. Let\'s take a quick tour.' },
+  { icon: '📺', title: 'TV & Movies Mode', body: 'The mode toggle in the topbar switches between TV shows and Movies. Each has its own lists, search, and stats. The Feed, Calendar, and Discover sections are shared between both.' },
+  { icon: '🔔', title: 'Notifications Bell', body: 'The bell in the topbar pulses red when something happens on your tracked shows — a cancellation, a renewal, a new air date announced. Tap it to see your notifications and dismiss them.' },
+  { icon: '🔍', title: 'Search', body: 'Use the search bar to find any TV show or movie. Results appear as you type with poster, year, and rating. Click + Add to add to your Watching list, or open the detail panel to choose a different list.' },
+  { icon: '📺', title: 'My Shows', body: 'My Shows is your entire TV library in one place. Seven smart filter chips sort your shows automatically — Unwatched, Upcoming, Filming, Ended, Completed, and Watchlist. Marquee moves shows between filters automatically based on your watch progress.' },
+  { icon: '🎯', title: 'How Filters Work', body: 'A show with unwatched aired episodes appears in Unwatched. Once you\'re caught up and a future air date is confirmed, it moves to Upcoming. When new episodes drop, it moves back to Unwatched automatically. Ended shows you\'ve finished move to Completed.' },
+  { icon: '▶', title: 'Up Next Widget', body: 'At the top of the Unwatched view, Up Next shows exactly where to pick up on each show. One tap marks that episode watched and automatically advances to the next one.' },
+  { icon: '🎬', title: 'Episode Tracking', body: 'Click any show row to expand it inline and track episodes without leaving the list. Season pills show progress at a glance — ✓ fully watched, · in progress. Watched episodes and seasons are hidden by default to keep things clean.' },
+  { icon: '📋', title: 'Activity Feed', body: 'The Feed tab logs everything you do in Marquee. At the top: On This Day shows activity from previous years on today\'s date, and Coming Up shows episodes airing in the next 30 days.' },
+  { icon: '📆', title: 'Calendar', body: 'The Calendar shows every upcoming episode air date and movie release across your library in a monthly grid. Click any entry to open that show\'s detail panel.' },
+  { icon: '🔭', title: 'Discover', body: 'Discover gives you TMDB\'s curated charts — Trending, Top Rated, Airing Today, and more. New Season Radar at the top shows upcoming season premieres from your own tracked shows.' },
+  { icon: '⚙️', title: 'Settings & Themes', body: 'In Settings you can choose a color theme (Ocean, Midnight, Ember, Emerald, Rose, or Gold), set your timezone, and update your password. The 🌓 button in the topbar cycles between Auto, Light, and Dark mode.' },
+];
+
+let tourCurrentStep = 0;
+
+function startTour() {
+  tourCurrentStep = 0;
+  renderTourStep();
+  document.getElementById('tour-overlay').classList.add('open');
+}
+
+function endTour() {
+  document.getElementById('tour-overlay').classList.remove('open');
+  localStorage.setItem('marquee-tour-seen', '1');
+}
+
+function handleTourOverlayClick(e) {
+  if (e.target === document.getElementById('tour-overlay')) endTour();
+}
+
+function advanceTour(dir) {
+  const next = tourCurrentStep + dir;
+  if (next < 0) return;
+  if (next >= TOUR_STEPS.length) { endTour(); return; }
+  tourCurrentStep = next;
+  renderTourStep();
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourCurrentStep];
+  const total = TOUR_STEPS.length;
+  document.getElementById('tour-icon').textContent = step.icon;
+  document.getElementById('tour-title').textContent = step.title;
+  document.getElementById('tour-body').textContent = step.body;
+  document.getElementById('tour-step-count').textContent = `${tourCurrentStep + 1} of ${total}`;
+  const dotsEl = document.getElementById('tour-dots');
+  dotsEl.innerHTML = TOUR_STEPS.map((_, i) =>
+    `<div class="tour-dot ${i === tourCurrentStep ? 'active' : ''}"></div>`
+  ).join('');
+  const backBtn = document.getElementById('tour-back-btn');
+  backBtn.style.visibility = tourCurrentStep === 0 ? 'hidden' : 'visible';
+  document.getElementById('tour-next-btn').textContent = tourCurrentStep === total - 1 ? 'Finish ✓' : 'Next ›';
+}
+
+document.addEventListener('keydown', e => {
+  const overlay = document.getElementById('tour-overlay');
+  if (!overlay?.classList.contains('open')) return;
+  if (e.key === 'ArrowRight' || e.key === 'Enter') advanceTour(1);
+  else if (e.key === 'ArrowLeft') advanceTour(-1);
+  else if (e.key === 'Escape') endTour();
+});
+
 // ─── NOTIFICATION PANEL ───────────────────────────────────────────────────────
 let notifPanelOpen = false;
 
@@ -7339,16 +7641,21 @@ function helpSearchPrev() {
 async function loadUserPrefs() {
   if (!currentUser) return;
   const { data } = await db.from('user_preferences')
-    .select('timezone')
+    .select('timezone, theme')
     .eq('user_id', currentUser.id)
     .single();
   if (data) {
     userPrefs = { timezone: data.timezone || 'America/New_York' };
+    // Apply palette from Supabase (overrides localStorage)
+    if (data.theme) {
+      applyPalette(data.theme);
+      localStorage.setItem('marquee-palette', data.theme);
+    }
   } else {
-    // First time — create a default preferences row
     await db.from('user_preferences').insert({
       user_id: currentUser.id,
-      timezone: 'America/New_York'
+      timezone: 'America/New_York',
+      theme: 'ocean'
     });
     userPrefs = { timezone: 'America/New_York' };
   }
@@ -7371,9 +7678,12 @@ function showSettings() {
   document.getElementById('settings-confirm-password').value = '';
   document.getElementById('settings-error').style.display = 'none';
   document.getElementById('settings-success').style.display = 'none';
-  // Pre-select current timezone
   const tzSelect = document.getElementById('settings-timezone');
   if (tzSelect) tzSelect.value = userPrefs.timezone || 'America/New_York';
+  // Sync palette swatches
+  document.querySelectorAll('.palette-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.palette === currentPalette);
+  });
   document.getElementById('settings-overlay').classList.add('open');
 }
 
