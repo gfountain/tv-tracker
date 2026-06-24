@@ -3332,6 +3332,7 @@ async function savePalette(palette) {
 }
 
 function applyTheme(mode) {
+  const useLightTheme = mode === 'light' || (mode === 'auto' && isLightTime());
   document.body.classList.toggle('theme-light', useLightTheme);
   // Update topbar button
   const btn = document.getElementById('theme-toggle-btn');
